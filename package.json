@@ -1,7 +1,7 @@
 {
   "name": "otc-trading-platform",
   "version": "1.0.0",
-  "description": "International Standard OTC Binary Options Platform",
+  "description": "International Standard Binary Options Platform with Complete Auth & Admin Suite",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
