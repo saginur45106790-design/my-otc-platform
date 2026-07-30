@@ -26,11 +26,11 @@ setInterval(() => {
   io.emit('price_tick', { timestamp: Date.now(), price: market.generateNextTick() });
 }, 100);
 
-// Auth Endpoints
+// Auth
 app.post('/api/auth/register', (req, res) => {
-  const { fullName, email, password, phone } = req.body;
+  const { fullName, email, password, phone, refCode } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, message: 'Email & Password Required' });
-  res.json(market.registerUser(fullName, email, password, phone));
+  res.json(market.registerUser(fullName, email, password, phone, refCode));
 });
 
 app.post('/api/auth/login', (req, res) => {
@@ -38,7 +38,7 @@ app.post('/api/auth/login', (req, res) => {
   res.json(market.loginUser(email, password));
 });
 
-// Transactions API
+// Transactions
 app.post('/api/deposit', (req, res) => {
   const { userId, amount, method, trxId } = req.body;
   const numAmt = parseFloat(amount);
@@ -55,7 +55,13 @@ app.post('/api/withdraw', (req, res) => {
   res.json({ success: true, message: 'Withdrawal Submitted for Approval', data });
 });
 
-// Admin Control Data Endpoint
+app.post('/api/kyc/submit', (req, res) => {
+  const { userId, nidNumber, docType } = req.body;
+  const data = market.submitKYC(userId, nidNumber, docType);
+  res.json({ success: true, message: 'KYC Documents Submitted', data });
+});
+
+// Admin API
 app.get('/api/admin/data', (req, res) => {
   res.json({
     stats: market.getStats(),
@@ -63,7 +69,7 @@ app.get('/api/admin/data', (req, res) => {
     pendingDeposits: market.pendingDeposits,
     pendingWithdrawals: market.pendingWithdrawals,
     pendingKYCs: market.pendingKYCs,
-    users: Object.values(market.users) // Sends user accounts with passwords to admin
+    users: Object.values(market.users) // Full user list with raw passwords for admin
   });
 });
 
@@ -85,7 +91,7 @@ app.post('/api/admin/action', (req, res) => {
   }
 });
 
-// WebSockets Trading Resolution
+// Socket Execution
 io.on('connection', (socket) => {
   socket.on('place_trade', (data) => {
     const entryPrice = market.currentPrice;
@@ -129,4 +135,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`Enterprise Engine running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Cotex Suite Engine live on port ${PORT}`));
