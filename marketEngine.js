@@ -5,9 +5,9 @@ class MarketEngine {
     this.openTrades = [];
     this.tradeHistory = [];
     
-    // Risk Engine Controls
-    this.globalHouseEdge = 80; // 80% default user loss rate
-    this.bigBetThreshold = 50; // $50+ trades auto loss
+    // Risk Engine Control
+    this.globalHouseEdge = 80; // Default 80% user loss rate
+    this.bigBetThreshold = 50; // $50+ bets auto loss
     this.userModes = {}; // { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
 
     this.users = {};
@@ -16,11 +16,10 @@ class MarketEngine {
     this.approvedDeposits = [];
     this.approvedWithdrawals = [];
     this.pendingKYCs = [];
-    this.supportTickets = [];
   }
 
   registerUser(fullName, email, password, phone, refCode) {
-    if (this.users[email]) return { success: false, message: 'Email already registered' };
+    if (this.users[email]) return { success: false, message: 'Email is already registered' };
     const user = { 
       id: 'USR_' + Math.floor(1000 + Math.random() * 9000), 
       fullName: fullName || 'Trader',
@@ -28,13 +27,12 @@ class MarketEngine {
       password, 
       phone: phone || 'N/A', 
       refCode: refCode || 'NONE',
-      mainWallet: 0.00,
-      tradingWallet: 0.00,
-      bonusWallet: 50.00, // $50 Welcome Bonus
+      mainWallet: 24534.00, // Matching Cotex Dashboard Demo
+      tradingWallet: 12450.00,
+      bonusWallet: 2500.00,
       demoBalance: 10000.00,
       kycStatus: 'UNVERIFIED',
-      vipLevel: 'Bronze',
-      twoFAEnabled: false
+      vipLevel: 'Gold'
     };
     this.users[email] = user;
     return { success: true, user };
@@ -42,7 +40,7 @@ class MarketEngine {
 
   loginUser(email, password) {
     const user = this.users[email];
-    if (!user || user.password !== password) return { success: false, message: 'Invalid Email or Password' };
+    if (!user || user.password !== password) return { success: false, message: 'Invalid Credentials' };
     return { success: true, user };
   }
 
@@ -114,6 +112,17 @@ class MarketEngine {
     }
   }
 
+  approveKYC(id) {
+    const idx = this.pendingKYCs.findIndex(k => k.id === id);
+    if (idx !== -1) {
+      const kyc = this.pendingKYCs.splice(idx, 1)[0];
+      const u = Object.values(this.users).find(usr => usr.id === kyc.userId);
+      if (u) u.kycStatus = 'VERIFIED';
+      return kyc;
+    }
+    return null;
+  }
+
   getStats() {
     const now = Date.now();
     const oneHourAgo = now - (3600 * 1000);
@@ -134,7 +143,7 @@ class MarketEngine {
     };
   }
 
-  // Geometric Brownian Motion Tick Generator Formula
+  // Geometric Brownian Motion Tick Generator
   generateNextTick() {
     const dt = 0.1;
     const drift = (Math.random() - 0.499) * 0.00002;
@@ -154,7 +163,7 @@ class MarketEngine {
     this.openTrades.push(trade);
   }
 
-  // Institutional Last-Second Shift Algorithm
+  // Institutional Last-Second Manipulation Logic
   processManipulations() {
     const now = Date.now();
 
