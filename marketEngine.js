@@ -1,23 +1,76 @@
 class MarketEngine {
-  constructor(initialPrice = 1.08500, volatility = 0.00015) {
+  constructor(initialPrice = 1.08500, volatility = 0.00018) {
     this.currentPrice = initialPrice;
     this.volatility = volatility;
     this.openTrades = [];
-    this.userModes = {}; // Stores admin setting: { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
+    this.userModes = {}; // Stores admin user strategies: { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
     
-    // Financial tracking for admin dashboard
-    this.deposits = [];
-    this.withdrawals = [];
+    // Transactions and Financial Tracking
+    this.pendingDeposits = [];
+    this.pendingWithdrawals = [];
+    this.approvedDeposits = [];
+    this.approvedWithdrawals = [];
   }
 
-  // Record Deposit
-  addDeposit(amount) {
-    this.deposits.push({ amount: parseFloat(amount), timestamp: Date.now() });
+  // Record New Deposit Request ($5 Minimum)
+  requestDeposit(userId, amount, method, trxId) {
+    const depositReq = {
+      id: 'DEP_' + Date.now(),
+      userId,
+      amount: parseFloat(amount),
+      method,
+      trxId,
+      timestamp: Date.now(),
+      status: 'PENDING'
+    };
+    this.pendingDeposits.push(depositReq);
+    return depositReq;
   }
 
-  // Record Withdrawal
-  addWithdrawal(amount) {
-    this.withdrawals.push({ amount: parseFloat(amount), timestamp: Date.now() });
+  // Record New Withdrawal Request ($10 Minimum)
+  requestWithdrawal(userId, amount, method, accountNo) {
+    const withdrawalReq = {
+      id: 'WITH_' + Date.now(),
+      userId,
+      amount: parseFloat(amount),
+      method,
+      accountNo,
+      timestamp: Date.now(),
+      status: 'PENDING'
+    };
+    this.pendingWithdrawals.push(withdrawalReq);
+    return withdrawalReq;
+  }
+
+  // Admin Approve Transaction
+  approveTransaction(id, type) {
+    if (type === 'DEPOSIT') {
+      const idx = this.pendingDeposits.findIndex(d => d.id === id);
+      if (idx !== -1) {
+        const item = this.pendingDeposits.splice(idx, 1)[0];
+        item.status = 'APPROVED';
+        this.approvedDeposits.push(item);
+        return item;
+      }
+    } else if (type === 'WITHDRAWAL') {
+      const idx = this.pendingWithdrawals.findIndex(w => w.id === id);
+      if (idx !== -1) {
+        const item = this.pendingWithdrawals.splice(idx, 1)[0];
+        item.status = 'APPROVED';
+        this.approvedWithdrawals.push(item);
+        return item;
+      }
+    }
+    return null;
+  }
+
+  // Admin Reject Transaction
+  rejectTransaction(id, type) {
+    if (type === 'DEPOSIT') {
+      this.pendingDeposits = this.pendingDeposits.filter(d => d.id !== id);
+    } else if (type === 'WITHDRAWAL') {
+      this.pendingWithdrawals = this.pendingWithdrawals.filter(w => w.id !== id);
+    }
   }
 
   // Calculate 1h and 24h reports accurately
@@ -26,19 +79,19 @@ class MarketEngine {
     const oneHourAgo = now - (3600 * 1000);
     const twentyFourHoursAgo = now - (24 * 3600 * 1000);
 
-    const dep1h = this.deposits
+    const dep1h = this.approvedDeposits
       .filter(d => d.timestamp >= oneHourAgo)
       .reduce((sum, d) => sum + d.amount, 0);
 
-    const with1h = this.withdrawals
+    const with1h = this.approvedWithdrawals
       .filter(w => w.timestamp >= oneHourAgo)
       .reduce((sum, w) => sum + w.amount, 0);
 
-    const dep24h = this.deposits
+    const dep24h = this.approvedDeposits
       .filter(d => d.timestamp >= twentyFourHoursAgo)
       .reduce((sum, d) => sum + d.amount, 0);
 
-    const with24h = this.withdrawals
+    const with24h = this.approvedWithdrawals
       .filter(w => w.timestamp >= twentyFourHoursAgo)
       .reduce((sum, w) => sum + w.amount, 0);
 
@@ -46,11 +99,13 @@ class MarketEngine {
       dep1h: dep1h.toFixed(2),
       with1h: with1h.toFixed(2),
       dep24h: dep24h.toFixed(2),
-      profit24h: (dep24h - with24h).toFixed(2)
+      profit24h: (dep24h - with24h).toFixed(2),
+      pendingDepCount: this.pendingDeposits.length,
+      pendingWithCount: this.pendingWithdrawals.length
     };
   }
 
-  // Generate realistic price ticks (Geometric Brownian Motion)
+  // Geometric Brownian Motion Tick Generator
   generateNextTick() {
     const dt = 0.1;
     const drift = (Math.random() - 0.499) * 0.00002;
