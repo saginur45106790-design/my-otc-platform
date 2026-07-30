@@ -58,10 +58,25 @@ app.post('/api/withdraw', (req, res) => {
 app.post('/api/kyc/submit', (req, res) => {
   const { userId, nidNumber, docType } = req.body;
   const data = market.submitKYC(userId, nidNumber, docType);
-  res.json({ success: true, message: 'KYC Documents Submitted', data });
+  res.json({ success: true, message: 'KYC Submitted for Approval', data });
 });
 
-// Admin API
+app.post('/api/wallet/transfer', (req, res) => {
+  const { email, amount, fromWallet, toWallet } = req.body;
+  const user = market.users[email];
+  if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+  const numAmt = parseFloat(amount);
+  if (isNaN(numAmt) || numAmt <= 0) return res.status(400).json({ success: false, message: 'Invalid Amount' });
+
+  if (fromWallet === 'main' && user.mainWallet >= numAmt) {
+    user.mainWallet -= numAmt;
+    if (toWallet === 'trading') user.tradingWallet += numAmt;
+    return res.json({ success: true, message: 'Transfer Successful', user });
+  }
+  res.status(400).json({ success: false, message: 'Insufficient Balance' });
+});
+
+// Admin Control Data Endpoint
 app.get('/api/admin/data', (req, res) => {
   res.json({
     stats: market.getStats(),
@@ -83,6 +98,10 @@ app.post('/api/admin/config', (req, res) => {
 app.post('/api/admin/action', (req, res) => {
   const { id, type, action } = req.body;
   if (action === 'APPROVE') {
+    if (type === 'KYC') {
+      market.approveKYC(id);
+      return res.json({ success: true, message: 'KYC Approved' });
+    }
     const item = market.approveTransaction(id, type);
     res.json({ success: true, item });
   } else {
@@ -91,7 +110,7 @@ app.post('/api/admin/action', (req, res) => {
   }
 });
 
-// Socket Execution
+// WebSockets Trading Execution
 io.on('connection', (socket) => {
   socket.on('place_trade', (data) => {
     const entryPrice = market.currentPrice;
@@ -117,6 +136,7 @@ io.on('connection', (socket) => {
       if (data.type === 'PUT' && finalPrice < entryPrice) isWin = true;
 
       const payout = isWin ? (parseFloat(data.amount) * 1.88) : 0;
+      market.tradeHistory.push({ ...trade, closePrice: finalPrice, isWin, payout });
 
       socket.emit('trade_result', {
         tradeId: trade.id,
@@ -135,4 +155,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`Cotex Suite Engine live on port ${PORT}`));
+server.listen(PORT, () => console.log(`COTEX Master Server running on port ${PORT}`));
