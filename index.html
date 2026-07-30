@@ -4,224 +4,169 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PRO-TRADE OTC Platform</title>
-  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <style>
-    :root {
-      --bg: #0b0e14;
-      --card: #161c28;
-      --card-border: #222b3d;
-      --text: #ffffff;
-      --green: #00e676;
-      --red: #ff1744;
-    }
-
-    body.light-theme {
-      --bg: #f4f6f8;
-      --card: #ffffff;
-      --card-border: #e1e4e8;
-      --text: #1a2130;
-    }
-
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; }
+    body { background: #0b0e14; color: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Fullscreen Overlay Views (Splash, Onboarding, Auth) */
-    .full-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+    /* Overlay Fullscreen Views */
+    .fullscreen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .auth-card { background: #161c28; border: 1px solid #222b3d; padding: 25px; border-radius: 16px; width: 100%; max-width: 360px; text-align: center; }
 
-    .slide-card { background: var(--card); border: 1px solid var(--card-border); padding: 25px; border-radius: 16px; width: 100%; max-width: 360px; backdrop-filter: blur(10px); }
-    .input-box { background: var(--bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; margin-bottom: 12px; text-align: left; }
+    .input-box { background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 10px; margin-bottom: 12px; text-align: left; }
     .input-box label { display: block; font-size: 11px; color: #848e9c; margin-bottom: 4px; }
-    .input-box input, .input-box select { width: 100%; background: transparent; border: none; color: var(--text); font-size: 14px; outline: none; }
+    .input-box input { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; }
 
-    .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--green); color: black; font-weight: bold; font-size: 15px; cursor: pointer; }
+    .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #00e676; color: black; font-weight: bold; font-size: 15px; cursor: pointer; }
 
-    /* Header Bar */
-    header { height: 50px; background: var(--card); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid var(--card-border); }
-    .logo { font-weight: bold; color: var(--green); font-size: 16px; }
-    .balance { background: var(--card-border); padding: 5px 12px; border-radius: 15px; color: var(--green); font-weight: 600; font-size: 14px; }
+    /* Main App Layout */
+    header { height: 50px; background: #161c28; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #222b3d; }
+    .logo { font-weight: bold; color: #00e676; font-size: 16px; }
+    .balance-box { background: #0b0e14; padding: 6px 14px; border-radius: 20px; color: #00e676; font-weight: 600; font-size: 14px; border: 1px solid #00e67644; }
 
-    /* Main App Body Pages */
-    .page { flex: 1; display: none; flex-direction: column; overflow-y: auto; }
+    .page { flex: 1; display: none; flex-direction: column; overflow-y: auto; padding-bottom: 60px; }
     .page.active { display: flex; }
 
-    /* Trade Page */
-    .pair-scroll { display: flex; gap: 8px; padding: 8px 12px; background: var(--card); overflow-x: auto; border-bottom: 1px solid var(--card-border); }
-    .pair-btn { padding: 5px 12px; background: var(--bg); border-radius: 12px; font-size: 12px; white-space: nowrap; cursor: pointer; }
-    .pair-btn.active { background: var(--green); color: #000; font-weight: bold; }
+    /* Pair Selector Bar */
+    .pair-bar { display: flex; gap: 8px; padding: 8px 12px; background: #161c28; overflow-x: auto; border-bottom: 1px solid #222b3d; }
+    .pair-chip { padding: 6px 14px; background: #0b0e14; border-radius: 15px; font-size: 12px; white-space: nowrap; cursor: pointer; border: 1px solid #222b3d; }
+    .pair-chip.active { background: #00e676; color: black; font-weight: bold; border-color: #00e676; }
 
-    #chart-wrapper { flex: 1; min-height: 260px; background: #131722; position: relative; }
-    #chart-container { width: 100%; height: 100%; }
+    /* Custom HTML5 Canvas Chart (100% Reliable, Never White) */
+    #chart-wrapper { flex: 1; min-height: 280px; background: #131722; position: relative; width: 100%; }
+    canvas { width: 100%; height: 100%; display: block; }
 
-    .trade-controls { background: var(--card); padding: 12px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--card-border); }
-    .control-row { display: flex; gap: 10px; }
-    .btn-group { display: flex; gap: 10px; }
-    .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; text-align: center; }
-    .btn-call { background: #00c853; color: white; }
-    .btn-put { background: #ff1744; color: white; }
+    /* Trade Control Panel */
+    .trade-panel { background: #161c28; padding: 12px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #222b3d; }
+    .panel-row { display: flex; gap: 10px; }
+    .custom-select-btn { flex: 1; background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 8px 12px; text-align: left; cursor: pointer; }
+    .custom-select-btn label { display: block; font-size: 10px; color: #848e9c; }
+    .custom-select-btn div { font-size: 14px; font-weight: 600; margin-top: 2px; }
 
-    /* Bottom Navigation */
-    nav { height: 55px; background: var(--card); display: flex; border-top: 1px solid var(--card-border); }
+    .trade-btn-group { display: flex; gap: 10px; }
+    .trade-btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+    .btn-higher { background: #00c853; color: white; }
+    .btn-lower { background: #ff1744; color: white; }
+
+    /* Bottom Navigation Bar */
+    nav { height: 60px; background: #161c28; display: flex; position: fixed; bottom: 0; left: 0; width: 100%; border-top: 1px solid #222b3d; z-index: 1000; }
     .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #848e9c; cursor: pointer; }
-    .nav-item.active { color: var(--green); font-weight: bold; }
+    .nav-item.active { color: #00e676; font-weight: bold; }
 
-    #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--card); color: var(--green); padding: 10px 20px; border-radius: 20px; border: 1px solid var(--green); font-size: 12px; display: none; z-index: 3000; }
+    /* Toast Notification */
+    #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #161c28; color: #00e676; padding: 10px 20px; border-radius: 20px; border: 1px solid #00e676; font-size: 12px; display: none; z-index: 3000; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <div id="toast"></div>
 
-  <!-- 1. Splash Screen -->
-  <div id="screen-splash" class="full-screen">
-    <div style="font-size: 40px; margin-bottom: 10px;">📈</div>
-    <h1 style="color: var(--green); font-size: 24px;">PRO-TRADE OTC</h1>
-    <p style="color: #848e9c; font-size: 13px; margin-top: 5px;">Next Generation Trading Engine</p>
+  <!-- Splash Screen -->
+  <div id="splash-screen" class="fullscreen-overlay">
+    <div style="font-size: 48px; margin-bottom: 15px;">📈</div>
+    <h1 style="color: #00e676; font-size: 26px;">PRO-TRADE OTC</h1>
+    <p style="color: #848e9c; font-size: 13px; margin-top: 5px;">High-Speed Binary Trading Platform</p>
   </div>
 
-  <!-- 2. Onboarding Screen -->
-  <div id="screen-onboarding" class="full-screen" style="display: none;">
-    <div class="slide-card">
-      <h2 id="onboard-title" style="color: var(--green); margin-bottom: 10px;">Global Market Access</h2>
-      <p id="onboard-desc" style="color: #848e9c; font-size: 13px; margin-bottom: 20px;">Trade Forex, Crypto, Stocks & Commodities with instant execution.</p>
-      <button class="btn-main" onclick="nextOnboardSlide()">Next Step</button>
-    </div>
-  </div>
-
-  <!-- 3. Auth Screen (Login / Register) -->
-  <div id="screen-auth" class="full-screen" style="display: none;">
-    <div class="slide-card">
-      <h2 style="color: var(--green); margin-bottom: 15px;" id="auth-heading">Sign In to Platform</h2>
-      
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="fullscreen-overlay" style="display: none;">
+    <div class="auth-card">
+      <h2 style="color: #00e676; margin-bottom: 15px;" id="auth-title">Sign In</h2>
       <div class="input-box">
         <label>Email Address</label>
-        <input type="email" id="auth-email" placeholder="name@example.com">
+        <input type="email" id="auth-email" placeholder="user@example.com">
       </div>
       <div class="input-box">
         <label>Password</label>
         <input type="password" id="auth-pass" placeholder="••••••••">
       </div>
-      <div class="input-box" id="box-phone" style="display: none;">
+      <div class="input-box" id="phone-box" style="display: none;">
         <label>Phone Number</label>
         <input type="text" id="auth-phone" placeholder="01700000000">
       </div>
-
-      <button class="btn-main" id="auth-btn" onclick="submitAuth()">Sign In</button>
-
+      <button class="btn-main" onclick="submitAuth()">Continue</button>
       <p style="font-size: 12px; margin-top: 15px; color: #848e9c; cursor: pointer;" onclick="toggleAuthMode()">
-        <span id="auth-toggle-text">Don't have an account? Sign Up</span>
+        <span id="auth-toggle-btn">Don't have an account? Sign Up</span>
       </p>
     </div>
   </div>
 
-  <!-- Main App Shell -->
+  <!-- Main Trading Shell -->
   <header>
     <div class="logo">PRO-TRADE OTC</div>
-    <div style="display: flex; gap: 8px; align-items: center;">
-      <button onclick="toggleTheme()" style="background: transparent; border: none; font-size: 16px; cursor: pointer;">🌓</button>
-      <div class="balance">$<span id="user-balance">1000.00</span></div>
-    </div>
+    <div class="balance-box">$<span id="user-balance">1000.00</span></div>
   </header>
 
-  <!-- Page 1: Trade -->
+  <!-- Page 1: Trade Screen -->
   <div id="page-trade" class="page active">
-    <div class="pair-scroll">
-      <div class="pair-btn active">EUR/USD OTC</div>
-      <div class="pair-btn">BTC/USDT OTC</div>
-      <div class="pair-btn">AAPL OTC</div>
-      <div class="pair-btn">GOLD OTC</div>
+    <div class="pair-bar">
+      <div class="pair-chip active">EUR/USD OTC</div>
+      <div class="pair-chip">BTC/USDT OTC</div>
+      <div class="pair-chip">AAPL OTC</div>
+      <div class="pair-chip">GOLD OTC</div>
     </div>
-    <div id="chart-wrapper"><div id="chart-container"></div></div>
-    <div class="trade-controls">
-      <div class="control-row">
-        <div class="input-box" style="margin-bottom:0;">
+
+    <!-- HTML5 Custom Canvas Chart Engine -->
+    <div id="chart-wrapper">
+      <canvas id="tradingCanvas"></canvas>
+    </div>
+
+    <div class="trade-panel">
+      <div class="panel-row">
+        <div class="custom-select-btn">
           <label>Timeframe</label>
-          <select id="trade-time">
-            <option value="60">1 Min (60s)</option>
-            <option value="120">2 Min (120s)</option>
-            <option value="300">5 Min (300s)</option>
-          </select>
+          <div id="timeframe-val">1 Min (60s)</div>
         </div>
-        <div class="input-box" style="margin-bottom:0;">
-          <label>Amount ($)</label>
-          <input type="number" id="trade-amount" value="10">
+        <div class="custom-select-btn">
+          <label>Investment Amount</label>
+          <div style="color: #00e676;">$<input type="number" id="trade-amount" value="10" style="width: 60px; background: transparent; border: none; color: #00e676; font-size: 14px; font-weight: bold; outline: none;"></div>
         </div>
       </div>
-      <div class="btn-group">
-        <button class="action-btn btn-call" onclick="placeTrade('CALL')">HIGHER ▲</button>
-        <button class="action-btn btn-put" onclick="placeTrade('PUT')">LOWER ▼</button>
+      <div class="trade-btn-group">
+        <button class="trade-btn btn-higher" onclick="placeTrade('CALL')">HIGHER ▲ (85%)</button>
+        <button class="trade-btn btn-lower" onclick="placeTrade('PUT')">LOWER ▼ (85%)</button>
       </div>
     </div>
   </div>
 
-  <!-- Page 2: Wallet -->
+  <!-- Page 2: Wallet / Deposit Screen -->
   <div id="page-wallet" class="page">
-    <div class="slide-card" style="margin: 20px auto; max-width: 100%;">
-      <div style="display: flex; background: var(--bg); border-radius: 8px; padding: 4px; margin-bottom: 15px;">
-        <div class="pair-btn active" id="btn-tab-dep" style="flex:1; text-align:center;" onclick="switchWalletTab('dep')">Deposit ($5 Min)</div>
-        <div class="pair-btn" id="btn-tab-with" style="flex:1; text-align:center;" onclick="switchWalletTab('with')">Withdraw ($10 Min)</div>
+    <div class="auth-card" style="margin: 20px auto; max-width: 90%;">
+      <h3 style="color: #00e676; margin-bottom: 15px;">Deposit ($5 Minimum)</h3>
+      <div class="input-box">
+        <label>Select Payment Gateway</label>
+        <input type="text" value="bKash / Nagad / USDT" readonly style="color: #848e9c;">
       </div>
-
-      <div id="sec-dep">
-        <div class="input-box">
-          <label>Method</label>
-          <select id="dep-method">
-            <option value="bKash">bKash Personal / Merchant</option>
-            <option value="Nagad">Nagad Personal</option>
-            <option value="USDT">USDT TRC20</option>
-          </select>
-        </div>
-        <div class="input-box">
-          <label>USD Amount ($5 Minimum)</label>
-          <input type="number" id="dep-amount" placeholder="5" oninput="calcBDT('dep')">
-          <div style="font-size: 11px; color: var(--green); margin-top: 4px;" id="dep-bdt">≈ 0.00 BDT (Rate: 1 USD = 122 BDT)</div>
-        </div>
-        <div class="input-box">
-          <label>Transaction TRX ID</label>
-          <input type="text" id="dep-trx" placeholder="Enter TRX ID">
-        </div>
-        <button class="btn-main" onclick="submitDeposit()">Submit Deposit</button>
+      <div class="input-box">
+        <label>USD Amount ($5 Minimum)</label>
+        <input type="number" id="dep-amount" placeholder="5" oninput="calcBDT()">
+        <div style="font-size: 12px; color: #00e676; margin-top: 5px;" id="dep-bdt">≈ 0.00 BDT (Rate: 1 USD = 122 BDT)</div>
       </div>
-
-      <div id="sec-with" style="display:none;">
-        <div class="input-box">
-          <label>Method</label>
-          <select id="with-method">
-            <option value="bKash">bKash Personal</option>
-            <option value="Nagad">Nagad Personal</option>
-          </select>
-        </div>
-        <div class="input-box">
-          <label>USD Amount ($10 Minimum)</label>
-          <input type="number" id="with-amount" placeholder="10" oninput="calcBDT('with')">
-          <div style="font-size: 11px; color: var(--green); margin-top: 4px;" id="with-bdt">≈ 0.00 BDT (Rate: 1 USD = 122 BDT)</div>
-        </div>
-        <div class="input-box">
-          <label>Account Number</label>
-          <input type="text" id="with-acc" placeholder="01800000000">
-        </div>
-        <button class="btn-main" style="background: var(--red); color: white;" onclick="submitWithdraw()">Submit Withdrawal</button>
+      <div class="input-box">
+        <label>Transaction TRX ID</label>
+        <input type="text" id="dep-trx" placeholder="Enter TRX ID">
       </div>
+      <button class="btn-main" onclick="submitDeposit()">Submit Deposit Request</button>
     </div>
   </div>
 
-  <!-- Page 3: Profile & KYC -->
+  <!-- Page 3: Profile Screen -->
   <div id="page-profile" class="page">
-    <div class="slide-card" style="margin: 20px auto; max-width: 100%;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Profile & KYC Verification</h3>
+    <div class="auth-card" style="margin: 20px auto; max-width: 90%;">
+      <h3 style="color: #00e676; margin-bottom: 15px;">Account Verification (KYC)</h3>
       <div class="input-box">
-        <label>Full Legal Name</label>
-        <input type="text" id="kyc-name" placeholder="John Doe">
+        <label>Full Name</label>
+        <input type="text" placeholder="John Doe">
       </div>
       <div class="input-box">
         <label>NID / Passport Number</label>
-        <input type="text" id="kyc-nid" placeholder="1990000000000">
+        <input type="text" placeholder="1234567890">
       </div>
-      <button class="btn-main" onclick="submitKYC()">Submit KYC Documents</button>
+      <button class="btn-main" onclick="showToast('KYC Documents Submitted!')">Submit KYC</button>
     </div>
   </div>
 
-  <!-- Bottom Navigation Bar -->
+  <!-- Fixed Bottom Navigation Bar -->
   <nav>
     <div class="nav-item active" onclick="showPage('trade', this)">📊 Trade</div>
     <div class="nav-item" onclick="showPage('wallet', this)">💳 Wallet</div>
@@ -233,102 +178,129 @@
     let currentUserId = "USER_101";
     let currentBalance = 1000.00;
     let isRegisterMode = false;
-    let currentSlide = 1;
     const USD_TO_BDT = 122;
 
-    // Splash Screen Timeout
-    setTimeout(() => {
-      document.getElementById('screen-splash').style.display = 'none';
-      document.getElementById('screen-onboarding').style.display = 'flex';
-    }, 2000);
+    // Canvas Candlestick Engine Data
+    let candleData = [];
+    let canvas, ctx;
 
-    function nextOnboardSlide() {
-      if (currentSlide === 1) {
-        document.getElementById('onboard-title').innerText = "Ultra-Fast Execution";
-        document.getElementById('onboard-desc').innerText = "Real-time charts powered by High-Frequency WebSockets.";
-        currentSlide = 2;
-      } else {
-        document.getElementById('screen-onboarding').style.display = 'none';
-        document.getElementById('screen-auth').style.display = 'flex';
-      }
-    }
+    setTimeout(() => {
+      document.getElementById('splash-screen').style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'flex';
+    }, 1500);
 
     function toggleAuthMode() {
       isRegisterMode = !isRegisterMode;
-      document.getElementById('auth-heading').innerText = isRegisterMode ? "Create New Account" : "Sign In to Platform";
-      document.getElementById('auth-btn').innerText = isRegisterMode ? "Sign Up" : "Sign In";
-      document.getElementById('box-phone').style.display = isRegisterMode ? "block" : "none";
-      document.getElementById('auth-toggle-text').innerText = isRegisterMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up";
+      document.getElementById('auth-title').innerText = isRegisterMode ? "Sign Up" : "Sign In";
+      document.getElementById('phone-box').style.display = isRegisterMode ? "block" : "none";
+      document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up";
     }
 
     function submitAuth() {
       const email = document.getElementById('auth-email').value;
       const pass = document.getElementById('auth-pass').value;
-      const phone = document.getElementById('auth-phone').value;
-
-      if (!email || !pass) { showToast("Enter email and password"); return; }
+      if (!email || !pass) { showToast("Enter Email and Password"); return; }
 
       const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
       fetch(endpoint, {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ email, password: pass, phone })
+        body: JSON.stringify({ email, password: pass })
       }).then(r => r.json()).then(data => {
         if (data.success) {
           currentUserId = data.user.id;
           currentBalance = data.user.balance;
           document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
-          document.getElementById('screen-auth').style.display = 'none';
-          showToast("Welcome to Platform!");
-          initChart();
+          document.getElementById('auth-screen').style.display = 'none';
+          showToast("Welcome!");
+          initCanvasChart();
         } else {
           showToast(data.message);
         }
       });
     }
 
-    // Lightweight Charts Setup
-    let chart, candleSeries, currentCandle = null;
-    function initChart() {
-      const chartWrapper = document.getElementById('chart-wrapper');
-      chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
-        width: chartWrapper.clientWidth || 360,
-        height: chartWrapper.clientHeight || 280,
-        layout: { backgroundColor: '#131722', textColor: '#d1d4dc' },
-        grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
-        timeScale: { timeVisible: true, secondsVisible: true }
-      });
-
-      candleSeries = chart.addCandlestickSeries({
-        upColor: '#00c853', downColor: '#ff1744',
-        borderUpColor: '#00c853', borderDownColor: '#ff1744',
-        wickUpColor: '#00c853', wickDownColor: '#ff1744'
-      });
+    // High-Performance Native HTML5 Canvas Candlestick Renderer
+    function initCanvasChart() {
+      canvas = document.getElementById('tradingCanvas');
+      ctx = canvas.getContext('2d');
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
 
       socket.on('price_tick', (data) => {
-        const time = Math.floor(data.timestamp / 1000);
         const price = data.price;
-
-        if (!currentCandle || Math.floor(currentCandle.time / 60) !== Math.floor(time / 60)) {
-          currentCandle = { time, open: price, high: price, low: price, close: price };
+        if (candleData.length === 0) {
+          candleData.push({ open: price, high: price, low: price, close: price });
         } else {
-          currentCandle.high = Math.max(currentCandle.high, price);
-          currentCandle.low = Math.min(currentCandle.low, price);
-          currentCandle.close = price;
+          let last = candleData[candleData.length - 1];
+          last.high = Math.max(last.high, price);
+          last.low = Math.min(last.low, price);
+          last.close = price;
         }
-        candleSeries.update(currentCandle);
+        if (candleData.length > 30) candleData.shift();
+        drawChart();
+      });
+
+      setInterval(() => {
+        if (candleData.length > 0) {
+          const lastClose = candleData[candleData.length - 1].close;
+          candleData.push({ open: lastClose, high: lastClose, low: lastClose, close: lastClose });
+        }
+      }, 5000);
+    }
+
+    function resizeCanvas() {
+      const wrapper = document.getElementById('chart-wrapper');
+      canvas.width = wrapper.clientWidth;
+      canvas.height = wrapper.clientHeight;
+      drawChart();
+    }
+
+    function drawChart() {
+      if (!ctx || candleData.length === 0) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const padding = 20;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      let minP = Math.min(...candleData.map(c => c.low));
+      let maxP = Math.max(...candleData.map(c => c.high));
+      if (minP === maxP) { minP -= 0.0001; maxP += 0.0001; }
+
+      const candleWidth = (w - padding * 2) / 30;
+
+      candleData.forEach((c, i) => {
+        const x = padding + i * candleWidth + candleWidth / 2;
+        const openY = h - padding - ((c.open - minP) / (maxP - minP)) * (h - padding * 2);
+        const closeY = h - padding - ((c.close - minP) / (maxP - minP)) * (h - padding * 2);
+        const highY = h - padding - ((c.high - minP) / (maxP - minP)) * (h - padding * 2);
+        const lowY = h - padding - ((c.low - minP) / (maxP - minP)) * (h - padding * 2);
+
+        const isGreen = c.close >= c.open;
+        ctx.strokeStyle = isGreen ? '#00c853' : '#ff1744';
+        ctx.fillStyle = isGreen ? '#00c853' : '#ff1744';
+
+        // Draw Wick
+        ctx.beginPath();
+        ctx.moveTo(x, highY);
+        ctx.lineTo(x, lowY);
+        ctx.stroke();
+
+        // Draw Body
+        const bodyTop = Math.min(openY, closeY);
+        const bodyHeight = Math.max(Math.abs(closeY - openY), 2);
+        ctx.fillRect(x - candleWidth * 0.3, bodyTop, candleWidth * 0.6, bodyHeight);
       });
     }
 
     function placeTrade(type) {
       const amount = parseFloat(document.getElementById('trade-amount').value);
-      const durationSec = parseInt(document.getElementById('trade-time').value);
-
-      if (amount > currentBalance) { showToast("Insufficient balance!"); return; }
+      if (amount > currentBalance) { showToast("Insufficient Balance!"); return; }
 
       currentBalance -= amount;
       document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
 
-      socket.emit('place_trade', { userId: currentUserId, type, amount, durationSec });
+      socket.emit('place_trade', { userId: currentUserId, type, amount, durationSec: 60 });
       showToast(`Trade Placed (${type})`);
     }
 
@@ -342,49 +314,21 @@
       document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
     });
 
-    function calcBDT(type) {
-      if (type === 'dep') {
-        const val = parseFloat(document.getElementById('dep-amount').value) || 0;
-        document.getElementById('dep-bdt').innerText = `≈ ${(val * USD_TO_BDT).toFixed(2)} BDT (Rate: 1 USD = ${USD_TO_BDT} BDT)`;
-      } else {
-        const val = parseFloat(document.getElementById('with-amount').value) || 0;
-        document.getElementById('with-bdt').innerText = `≈ ${(val * USD_TO_BDT).toFixed(2)} BDT (Rate: 1 USD = ${USD_TO_BDT} BDT)`;
-      }
+    function calcBDT() {
+      const amt = parseFloat(document.getElementById('dep-amount').value) || 0;
+      document.getElementById('dep-bdt').innerText = `≈ ${(amt * USD_TO_BDT).toFixed(2)} BDT (Rate: 1 USD = ${USD_TO_BDT} BDT)`;
     }
 
     function submitDeposit() {
       const amt = parseFloat(document.getElementById('dep-amount').value);
       const trxId = document.getElementById('dep-trx').value;
-      if (isNaN(amt) || amt < 5) { showToast("Minimum deposit is $5"); return; }
+      if (isNaN(amt) || amt < 5) { showToast("Minimum Deposit is $5"); return; }
       if (!trxId) { showToast("Enter TRX ID"); return; }
 
       fetch('/api/deposit', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUserId, amount: amt, method: document.getElementById('dep-method').value, trxId })
-      }).then(() => showToast("Deposit Request Submitted"));
-    }
-
-    function submitWithdraw() {
-      const amt = parseFloat(document.getElementById('with-amount').value);
-      const accountNo = document.getElementById('with-acc').value;
-      if (isNaN(amt) || amt < 10) { showToast("Minimum withdrawal is $10"); return; }
-      if (!accountNo) { showToast("Enter Account Number"); return; }
-
-      fetch('/api/withdraw', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUserId, amount: amt, method: document.getElementById('with-method').value, accountNo })
-      }).then(() => showToast("Withdrawal Request Submitted"));
-    }
-
-    function submitKYC() {
-      const name = document.getElementById('kyc-name').value;
-      const nidNumber = document.getElementById('kyc-nid').value;
-      if (!name || !nidNumber) { showToast("Fill all KYC fields"); return; }
-
-      fetch('/api/kyc/submit', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUserId, name, nidNumber })
-      }).then(() => showToast("KYC Documents Submitted"));
+        body: JSON.stringify({ userId: currentUserId, amount: amt, method: 'bKash/Nagad', trxId })
+      }).then(() => showToast("Deposit Submitted for Approval"));
     }
 
     function showPage(pageId, el) {
@@ -393,29 +337,11 @@
       document.getElementById('page-' + pageId).classList.add('active');
       el.classList.add('active');
 
-      if (pageId === 'trade' && chart) {
-        setTimeout(() => {
-          const wrapper = document.getElementById('chart-wrapper');
-          chart.applyOptions({ width: wrapper.clientWidth, height: wrapper.clientHeight });
-        }, 100);
+      if (pageId === 'trade') {
+        setTimeout(resizeCanvas, 100);
       }
     }
 
-    function switchWalletTab(tab) {
-      if(tab === 'dep') {
-        document.getElementById('sec-dep').style.display = 'block';
-        document.getElementById('sec-with').style.display = 'none';
-        document.getElementById('btn-tab-dep').classList.add('active');
-        document.getElementById('btn-tab-with').classList.remove('active');
-      } else {
-        document.getElementById('sec-dep').style.display = 'none';
-        document.getElementById('sec-with').style.display = 'block';
-        document.getElementById('btn-tab-with').classList.add('active');
-        document.getElementById('btn-tab-dep').classList.remove('active');
-      }
-    }
-
-    function toggleTheme() { document.body.classList.toggle('light-theme'); }
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.innerText = msg;
@@ -424,4 +350,4 @@
     }
   </script>
 </body>
-        </html>
+  </html>
