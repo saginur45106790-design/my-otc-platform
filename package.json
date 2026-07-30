@@ -1,7 +1,7 @@
 {
-  "name": "quotex-grade-otc-platform",
-  "version": "3.0.0",
-  "description": "Institutional Grade Binary Options Platform with Advanced Manipulation Suite",
+  "name": "cotex-enterprise-platform",
+  "version": "5.0.0",
+  "description": "Institutional Grade Mobile Responsive Binary Options Platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
