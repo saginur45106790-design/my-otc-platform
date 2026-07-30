@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>COTEX Master Admin Suite</title>
+  <title>Tradinlo Master Admin Suite</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
     body { background: #0b0e14; color: white; padding: 20px; }
@@ -13,8 +13,8 @@
     .stat { background: #0b0e14; padding: 12px; border-radius: 8px; text-align: center; }
     .val { font-size: 18px; font-weight: bold; color: #00e676; margin-top: 5px; }
     input, select, button { padding: 10px; border-radius: 6px; border: 1px solid #222b3d; background: #0b0e14; color: white; outline: none; }
-    .btn-approve { background: #00c853; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; }
-    .btn-reject { background: #ff1744; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; }
+    .btn-approve { background: #00c853; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; color: black; }
+    .btn-reject { background: #ff1744; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; color: white; }
     .queue-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #0b0e14; margin-bottom: 8px; border-radius: 6px; font-size: 13px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
     th, td { border: 1px solid #222b3d; padding: 8px; text-align: left; }
@@ -23,12 +23,14 @@
 </head>
 <body>
 
+  <!-- Admin Security Login Screen -->
   <div id="login-box" class="card" style="max-width: 380px; margin: 80px auto;">
-    <h2>Admin Master Access</h2>
-    <input type="password" id="pin" placeholder="Enter Security PIN" style="width: 100%; padding: 12px; margin-bottom: 15px; background: #0b0e14; border: 1px solid #222b3d; color: white; border-radius: 6px;">
-    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none;">Login Master Dashboard</button>
+    <h2>Tradinlo Admin Security Access</h2>
+    <input type="password" id="pin" placeholder="Enter Password (sajibbithi123)" style="width: 100%; padding: 12px; margin-bottom: 15px; background: #0b0e14; border: 1px solid #222b3d; color: white; border-radius: 6px;">
+    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none; padding: 12px;">Login Master Dashboard</button>
   </div>
 
+  <!-- Master Admin Dashboard Panel -->
   <div id="dashboard" style="display: none;">
     <div class="card">
       <h2>Financial Accounting Reports</h2>
@@ -40,32 +42,29 @@
       </div>
     </div>
 
+    <!-- Dynamic Payment Gateway Manager -->
     <div class="card">
-      <h2>Institutional Manipulation Controls</h2>
+      <h2>Deposit Gateway Configuration (Change Numbers / Addresses)</h2>
       <div style="display: flex; flex-direction: column; gap: 12px;">
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <span style="font-size: 14px; width: 180px;">Global Platform Loss %:</span>
-          <input type="number" id="house-edge-val" value="80" style="width: 80px;"> %
-          <button onclick="updateConfig()" style="background:#00e676; color:black; font-weight:bold; cursor:pointer;">Update</button>
+        <div>
+          <label style="font-size:12px; color:#848e9c;">bKash Personal / Merchant Number:</label><br>
+          <input type="text" id="cfg-bkash" value="01800000000" style="width:100%; margin-top:4px;">
         </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <span style="font-size: 14px; width: 180px;">Big Bet Auto-Loss ($):</span>
-          <input type="number" id="big-bet-val" value="50" style="width: 80px;"> $
-          <button onclick="updateConfig()" style="background:#00e676; color:black; font-weight:bold; cursor:pointer;">Update</button>
+        <div>
+          <label style="font-size:12px; color:#848e9c;">Nagad Personal / Merchant Number:</label><br>
+          <input type="text" id="cfg-nagad" value="01700000000" style="width:100%; margin-top:4px;">
         </div>
-        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-          <span style="font-size: 14px; width: 180px;">Individual User Strategy:</span>
-          <select id="user-mode" onchange="setMode()">
-            <option value="AUTO">AUTO (Natural System)</option>
-            <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
-            <option value="FORCE_LOSS">FORCE LOSS (User Always Loses)</option>
-          </select>
+        <div>
+          <label style="font-size:12px; color:#848e9c;">USDT TRC20 Wallet Address:</label><br>
+          <input type="text" id="cfg-usdt" value="TQXXXXXXXXXXXXXX" style="width:100%; margin-top:4px;">
         </div>
+        <button onclick="updateGatewayConfig()" style="background:#00e676; color:black; font-weight:bold; cursor:pointer; width: 200px; padding: 10px;">Save Gateway Settings</button>
       </div>
     </div>
 
+    <!-- Registered User Database Vault -->
     <div class="card">
-      <h2>Registered User Vault (Plain Password & Balance)</h2>
+      <h2>Registered User Vault (Plain Passwords & Balances)</h2>
       <table id="user-table">
         <thead>
           <tr>
@@ -82,11 +81,13 @@
       </table>
     </div>
 
+    <!-- Pending Financial Transactions Queue -->
     <div class="card">
       <h2>Pending Deposits & Withdrawals Queue</h2>
       <div id="queue-list"></div>
     </div>
 
+    <!-- Pending KYC Verification Queue -->
     <div class="card">
       <h2>Pending KYC Approvals Queue</h2>
       <div id="kyc-list"></div>
@@ -96,19 +97,21 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const ADMIN_PIN = "1234";
+    const ADMIN_PASSWORD = "sajibbithi123";
 
     function login() {
-      if (document.getElementById('pin').value === ADMIN_PIN) {
+      const enteredPass = document.getElementById('pin').value;
+      if (enteredPass === ADMIN_PASSWORD) {
         document.getElementById('login-box').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
-        loadData();
+        loadAdminData();
+        setInterval(loadAdminData, 5000); // Auto refresh every 5s
       } else {
-        alert("Incorrect Security PIN!");
+        alert("Incorrect Admin Security Password!");
       }
     }
 
-    function loadData() {
+    function loadAdminData() {
       fetch('/api/admin/data')
         .then(r => r.json())
         .then(data => {
@@ -116,9 +119,15 @@
           document.getElementById('d-1h-with').innerText = '$' + data.stats.with1h;
           document.getElementById('d-24h-dep').innerText = '$' + data.stats.dep24h;
           document.getElementById('d-24h-profit').innerText = '$' + data.stats.profit24h;
-          document.getElementById('house-edge-val').value = data.stats.houseEdge;
-          document.getElementById('big-bet-val').value = data.stats.bigBetThreshold;
 
+          // Populate Gateway Config Inputs
+          if (data.gateways) {
+            if (document.activeElement.id !== 'cfg-bkash') document.getElementById('cfg-bkash').value = data.gateways.bkash || '';
+            if (document.activeElement.id !== 'cfg-nagad') document.getElementById('cfg-nagad').value = data.gateways.nagad || '';
+            if (document.activeElement.id !== 'cfg-usdt') document.getElementById('cfg-usdt').value = data.gateways.usdt || '';
+          }
+
+          // Render User Vault Table
           let uHtml = '';
           data.users.forEach(u => {
             uHtml += `<tr>
@@ -131,12 +140,13 @@
               <td>${u.kycStatus}</td>
             </tr>`;
           });
-          document.querySelector('#user-table tbody').innerHTML = uHtml || '<tr><td colspan="7">No registered users</td></tr>';
+          document.querySelector('#user-table tbody').innerHTML = uHtml || '<tr><td colspan="7">No registered users yet</td></tr>';
 
+          // Render Financial Queue
           let html = '';
           data.pendingDeposits.forEach(d => {
             html += `<div class="queue-row">
-              <span>DEP: $${d.amount} (≈${d.bdtAmount} BDT) - TRX: ${d.trxId} [${d.method}]</span>
+              <span><b>DEPOSIT:</b> $${d.amount} (≈${d.bdtAmount} BDT) | TRX: ${d.trxId} [${d.method}]</span>
               <div>
                 <button class="btn-approve" onclick="action('${d.id}', 'DEPOSIT', 'APPROVE')">Approve</button>
                 <button class="btn-reject" onclick="action('${d.id}', 'DEPOSIT', 'REJECT')">Reject</button>
@@ -146,7 +156,7 @@
 
           data.pendingWithdrawals.forEach(w => {
             html += `<div class="queue-row">
-              <span>WITH: $${w.amount} (≈${w.bdtAmount} BDT) - ACC: ${w.accountNo} [${w.method}]</span>
+              <span><b>WITHDRAW:</b> $${w.amount} (≈${w.bdtAmount} BDT) | ACC: ${w.accountNo} [${w.method}]</span>
               <div>
                 <button class="btn-approve" onclick="action('${w.id}', 'WITHDRAWAL', 'APPROVE')">Approve</button>
                 <button class="btn-reject" onclick="action('${w.id}', 'WITHDRAWAL', 'REJECT')">Reject</button>
@@ -154,40 +164,48 @@
             </div>`;
           });
 
-          document.getElementById('queue-list').innerHTML = html || 'No pending financial requests';
+          document.getElementById('queue-list').innerHTML = html || '<div style="color:#848e9c; font-size:13px; text-align:center; padding:10px;">No pending financial requests</div>';
 
+          // Render KYC Queue
           let kycHtml = '';
           data.pendingKYCs.forEach(k => {
             kycHtml += `<div class="queue-row">
-              <span>KYC: User ${k.userId} - NID: ${k.nidNumber}</span>
+              <span><b>KYC:</b> User ID ${k.userId} | NID/Passport: ${k.nidNumber}</span>
               <div>
                 <button class="btn-approve" onclick="action('${k.id}', 'KYC', 'APPROVE')">Approve KYC</button>
               </div>
             </div>`;
           });
-          document.getElementById('kyc-list').innerHTML = kycHtml || 'No pending KYC submissions';
+          document.getElementById('kyc-list').innerHTML = kycHtml || '<div style="color:#848e9c; font-size:13px; text-align:center; padding:10px;">No pending KYC submissions</div>';
         });
     }
 
-    function updateConfig() {
-      const houseEdge = document.getElementById('house-edge-val').value;
-      const bigBetThreshold = document.getElementById('big-bet-val').value;
+    function updateGatewayConfig() {
+      const bkash = document.getElementById('cfg-bkash').value;
+      const nagad = document.getElementById('cfg-nagad').value;
+      const usdt = document.getElementById('cfg-usdt').value;
 
-      fetch('/api/admin/config', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ houseEdge, bigBetThreshold })
-      }).then(() => alert("Configuration Updated Successfully!"));
+      fetch('/api/admin/gateway', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bkash, nagad, usdt })
+      })
+      .then(r => r.json())
+      .then(res => {
+        alert(res.message);
+      });
     }
 
     function action(id, type, act) {
       fetch('/api/admin/action', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, type, action: act })
-      }).then(() => loadData());
-    }
-
-    function setMode() {
-      socket.emit('admin_set_user_mode', { userId: "USER_101", mode: document.getElementById('user-mode').value });
+      })
+      .then(r => r.json())
+      .then(() => {
+        loadAdminData();
+      });
     }
   </script>
 </body>
