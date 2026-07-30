@@ -1,7 +1,7 @@
 {
-  "name": "cotex-master-platform",
-  "version": "8.0.0",
-  "description": "Complete Cotex Binary Options Trading Platform with Advanced Analytics Suite",
+  "name": "cotex-enterprise-master",
+  "version": "9.0.0",
+  "description": "Enterprise Binary Options Platform matching Cotex UI 100%",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
