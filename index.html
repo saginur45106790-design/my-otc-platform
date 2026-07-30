@@ -3,57 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PRO-TRADE OTC Platform</title>
+  <title>PRO-TRADE Binary Platform</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: #0b0e14; color: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Overlay Fullscreen Views */
-    .fullscreen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-    .auth-card { background: #161c28; border: 1px solid #222b3d; padding: 25px; border-radius: 16px; width: 100%; max-width: 360px; text-align: center; }
+    /* Overlay Screen */
+    .fullscreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .card-box { background: #161c28; border: 1px solid #222b3d; padding: 25px; border-radius: 16px; width: 100%; max-width: 360px; text-align: center; }
 
-    .input-box { background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 10px; margin-bottom: 12px; text-align: left; }
-    .input-box label { display: block; font-size: 11px; color: #848e9c; margin-bottom: 4px; }
-    .input-box input { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; }
+    .input-group { background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 10px; margin-bottom: 12px; text-align: left; }
+    .input-group label { display: block; font-size: 11px; color: #848e9c; margin-bottom: 4px; }
+    .input-group input, .input-group select { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; }
 
-    .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #00e676; color: black; font-weight: bold; font-size: 15px; cursor: pointer; }
+    .btn-green { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #00e676; color: black; font-weight: bold; font-size: 15px; cursor: pointer; }
 
-    /* Main App Layout */
+    /* Header Bar */
     header { height: 50px; background: #161c28; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #222b3d; }
     .logo { font-weight: bold; color: #00e676; font-size: 16px; }
-    .balance-box { background: #0b0e14; padding: 6px 14px; border-radius: 20px; color: #00e676; font-weight: 600; font-size: 14px; border: 1px solid #00e67644; }
+    
+    .account-switcher { background: #0b0e14; padding: 5px 12px; border-radius: 20px; color: #00e676; font-weight: 600; font-size: 13px; border: 1px solid #00e67644; cursor: pointer; }
 
     .page { flex: 1; display: none; flex-direction: column; overflow-y: auto; padding-bottom: 60px; }
     .page.active { display: flex; }
 
-    /* Pair Selector Bar */
+    /* Quotex Pair Bar */
     .pair-bar { display: flex; gap: 8px; padding: 8px 12px; background: #161c28; overflow-x: auto; border-bottom: 1px solid #222b3d; }
-    .pair-chip { padding: 6px 14px; background: #0b0e14; border-radius: 15px; font-size: 12px; white-space: nowrap; cursor: pointer; border: 1px solid #222b3d; }
+    .pair-chip { padding: 6px 12px; background: #0b0e14; border-radius: 12px; font-size: 12px; white-space: nowrap; cursor: pointer; border: 1px solid #222b3d; display: flex; gap: 6px; align-items: center; }
     .pair-chip.active { background: #00e676; color: black; font-weight: bold; border-color: #00e676; }
+    .profit-tag { font-size: 10px; padding: 2px 4px; background: rgba(0,230,118,0.2); border-radius: 4px; color: #00e676; }
 
-    /* Custom HTML5 Canvas Chart (100% Reliable, Never White) */
+    /* Canvas Chart */
     #chart-wrapper { flex: 1; min-height: 280px; background: #131722; position: relative; width: 100%; }
     canvas { width: 100%; height: 100%; display: block; }
 
-    /* Trade Control Panel */
+    /* Trading Panel */
     .trade-panel { background: #161c28; padding: 12px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #222b3d; }
     .panel-row { display: flex; gap: 10px; }
-    .custom-select-btn { flex: 1; background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 8px 12px; text-align: left; cursor: pointer; }
-    .custom-select-btn label { display: block; font-size: 10px; color: #848e9c; }
-    .custom-select-btn div { font-size: 14px; font-weight: 600; margin-top: 2px; }
+    .custom-box { flex: 1; background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 8px 12px; text-align: left; }
+    .custom-box label { display: block; font-size: 10px; color: #848e9c; }
+    .custom-box div { font-size: 14px; font-weight: 600; margin-top: 2px; }
 
     .trade-btn-group { display: flex; gap: 10px; }
     .trade-btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
-    .btn-higher { background: #00c853; color: white; }
-    .btn-lower { background: #ff1744; color: white; }
+    .btn-call { background: #00c853; color: white; }
+    .btn-put { background: #ff1744; color: white; }
 
-    /* Bottom Navigation Bar */
+    /* Fixed Bottom Nav */
     nav { height: 60px; background: #161c28; display: flex; position: fixed; bottom: 0; left: 0; width: 100%; border-top: 1px solid #222b3d; z-index: 1000; }
     .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #848e9c; cursor: pointer; }
     .nav-item.active { color: #00e676; font-weight: bold; }
 
-    /* Toast Notification */
     #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #161c28; color: #00e676; padding: 10px 20px; border-radius: 20px; border: 1px solid #00e676; font-size: 12px; display: none; z-index: 3000; font-weight: bold; }
   </style>
 </head>
@@ -61,112 +62,107 @@
 
   <div id="toast"></div>
 
-  <!-- Splash Screen -->
-  <div id="splash-screen" class="fullscreen-overlay">
+  <div id="splash-screen" class="fullscreen">
     <div style="font-size: 48px; margin-bottom: 15px;">📈</div>
     <h1 style="color: #00e676; font-size: 26px;">PRO-TRADE OTC</h1>
-    <p style="color: #848e9c; font-size: 13px; margin-top: 5px;">High-Speed Binary Trading Platform</p>
+    <p style="color: #848e9c; font-size: 13px; margin-top: 5px;">Quotex Grade Trading Platform</p>
   </div>
 
-  <!-- Auth Screen -->
-  <div id="auth-screen" class="fullscreen-overlay" style="display: none;">
-    <div class="auth-card">
+  <div id="auth-screen" class="fullscreen" style="display: none;">
+    <div class="card-box">
       <h2 style="color: #00e676; margin-bottom: 15px;" id="auth-title">Sign In</h2>
-      <div class="input-box">
+      <div class="input-group">
         <label>Email Address</label>
         <input type="email" id="auth-email" placeholder="user@example.com">
       </div>
-      <div class="input-box">
+      <div class="input-group">
         <label>Password</label>
         <input type="password" id="auth-pass" placeholder="••••••••">
       </div>
-      <div class="input-box" id="phone-box" style="display: none;">
-        <label>Phone Number</label>
-        <input type="text" id="auth-phone" placeholder="01700000000">
-      </div>
-      <button class="btn-main" onclick="submitAuth()">Continue</button>
+      <button class="btn-green" onclick="submitAuth()">Continue</button>
       <p style="font-size: 12px; margin-top: 15px; color: #848e9c; cursor: pointer;" onclick="toggleAuthMode()">
         <span id="auth-toggle-btn">Don't have an account? Sign Up</span>
       </p>
     </div>
   </div>
 
-  <!-- Main Trading Shell -->
   <header>
     <div class="logo">PRO-TRADE OTC</div>
-    <div class="balance-box">$<span id="user-balance">1000.00</span></div>
+    <div class="account-switcher" onclick="switchAccountType()">
+      <span id="acc-type-label">Demo</span>: $<span id="user-balance">10000.00</span> 🔄
+    </div>
   </header>
 
-  <!-- Page 1: Trade Screen -->
   <div id="page-trade" class="page active">
     <div class="pair-bar">
-      <div class="pair-chip active">EUR/USD OTC</div>
-      <div class="pair-chip">BTC/USDT OTC</div>
-      <div class="pair-chip">AAPL OTC</div>
-      <div class="pair-chip">GOLD OTC</div>
+      <div class="pair-chip active">EUR/USD OTC <span class="profit-tag">+87%</span></div>
+      <div class="pair-chip">BTC/USDT OTC <span class="profit-tag">+92%</span></div>
+      <div class="pair-chip">AAPL OTC <span class="profit-tag">+85%</span></div>
+      <div class="pair-chip">GOLD OTC <span class="profit-tag">+88%</span></div>
     </div>
 
-    <!-- HTML5 Custom Canvas Chart Engine -->
     <div id="chart-wrapper">
       <canvas id="tradingCanvas"></canvas>
     </div>
 
     <div class="trade-panel">
       <div class="panel-row">
-        <div class="custom-select-btn">
+        <div class="custom-box">
           <label>Timeframe</label>
-          <div id="timeframe-val">1 Min (60s)</div>
+          <div>1 Min (60s)</div>
         </div>
-        <div class="custom-select-btn">
+        <div class="custom-box">
           <label>Investment Amount</label>
           <div style="color: #00e676;">$<input type="number" id="trade-amount" value="10" style="width: 60px; background: transparent; border: none; color: #00e676; font-size: 14px; font-weight: bold; outline: none;"></div>
         </div>
       </div>
       <div class="trade-btn-group">
-        <button class="trade-btn btn-higher" onclick="placeTrade('CALL')">HIGHER ▲ (85%)</button>
-        <button class="trade-btn btn-lower" onclick="placeTrade('PUT')">LOWER ▼ (85%)</button>
+        <button class="trade-btn btn-call" onclick="placeTrade('CALL')">HIGHER ▲ (87%)</button>
+        <button class="trade-btn btn-put" onclick="placeTrade('PUT')">LOWER ▼ (87%)</button>
       </div>
     </div>
   </div>
 
-  <!-- Page 2: Wallet / Deposit Screen -->
   <div id="page-wallet" class="page">
-    <div class="auth-card" style="margin: 20px auto; max-width: 90%;">
+    <div class="card-box" style="margin: 20px auto; max-width: 90%;">
       <h3 style="color: #00e676; margin-bottom: 15px;">Deposit ($5 Minimum)</h3>
-      <div class="input-box">
-        <label>Select Payment Gateway</label>
-        <input type="text" value="bKash / Nagad / USDT" readonly style="color: #848e9c;">
+      <div class="input-group">
+        <label>Payment Method</label>
+        <select id="dep-method" style="color:white;">
+          <option value="bKash (P2P)">bKash (P2P / Merchant)</option>
+          <option value="Nagad (P2P)">Nagad Personal</option>
+          <option value="USDT TRC20">USDT (TRC20 / BEP20)</option>
+          <option value="Binance Pay">Binance Pay</option>
+        </select>
       </div>
-      <div class="input-box">
+      <div class="input-group">
         <label>USD Amount ($5 Minimum)</label>
         <input type="number" id="dep-amount" placeholder="5" oninput="calcBDT()">
         <div style="font-size: 12px; color: #00e676; margin-top: 5px;" id="dep-bdt">≈ 0.00 BDT (Rate: 1 USD = 122 BDT)</div>
       </div>
-      <div class="input-box">
+      <div class="input-group">
         <label>Transaction TRX ID</label>
         <input type="text" id="dep-trx" placeholder="Enter TRX ID">
       </div>
-      <button class="btn-main" onclick="submitDeposit()">Submit Deposit Request</button>
+      <button class="btn-green" onclick="submitDeposit()">Submit Deposit Request</button>
     </div>
   </div>
 
-  <!-- Page 3: Profile Screen -->
   <div id="page-profile" class="page">
-    <div class="auth-card" style="margin: 20px auto; max-width: 90%;">
+    <div class="card-box" style="margin: 20px auto; max-width: 90%;">
       <h3 style="color: #00e676; margin-bottom: 15px;">Account Verification (KYC)</h3>
-      <div class="input-box">
-        <label>Full Name</label>
-        <input type="text" placeholder="John Doe">
+      <div class="input-group">
+        <label>Full Legal Name</label>
+        <input type="text" placeholder="MD Sajib Hossain">
       </div>
-      <div class="input-box">
+      <div class="input-group">
         <label>NID / Passport Number</label>
-        <input type="text" placeholder="1234567890">
+        <input type="text" placeholder="85857047">
       </div>
-      <button class="btn-main" onclick="showToast('KYC Documents Submitted!')">Submit KYC</button>
+      <button class="btn-green" onclick="showToast('KYC Documents Submitted!')">Submit Documents</button>
     </div>
   </div>
 
-  <!-- Fixed Bottom Navigation Bar -->
   <nav>
     <div class="nav-item active" onclick="showPage('trade', this)">📊 Trade</div>
     <div class="nav-item" onclick="showPage('wallet', this)">💳 Wallet</div>
@@ -176,11 +172,13 @@
   <script>
     const socket = io();
     let currentUserId = "USER_101";
-    let currentBalance = 1000.00;
+    let currentUserEmail = "";
+    let isRealAccount = false;
+    let demoBalance = 10000.00;
+    let realBalance = 0.00;
     let isRegisterMode = false;
     const USD_TO_BDT = 122;
 
-    // Canvas Candlestick Engine Data
     let candleData = [];
     let canvas, ctx;
 
@@ -192,7 +190,6 @@
     function toggleAuthMode() {
       isRegisterMode = !isRegisterMode;
       document.getElementById('auth-title').innerText = isRegisterMode ? "Sign Up" : "Sign In";
-      document.getElementById('phone-box').style.display = isRegisterMode ? "block" : "none";
       document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up";
     }
 
@@ -207,9 +204,11 @@
         body: JSON.stringify({ email, password: pass })
       }).then(r => r.json()).then(data => {
         if (data.success) {
+          currentUserEmail = email;
           currentUserId = data.user.id;
-          currentBalance = data.user.balance;
-          document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
+          demoBalance = data.user.demoBalance;
+          realBalance = data.user.realBalance;
+          updateBalanceUI();
           document.getElementById('auth-screen').style.display = 'none';
           showToast("Welcome!");
           initCanvasChart();
@@ -219,7 +218,18 @@
       });
     }
 
-    // High-Performance Native HTML5 Canvas Candlestick Renderer
+    function switchAccountType() {
+      isRealAccount = !isRealAccount;
+      updateBalanceUI();
+      showToast(isRealAccount ? "Switched to Real Account" : "Switched to Demo Account");
+    }
+
+    function updateBalanceUI() {
+      document.getElementById('acc-type-label').innerText = isRealAccount ? "Real" : "Demo";
+      const bal = isRealAccount ? realBalance : demoBalance;
+      document.getElementById('user-balance').innerText = bal.toFixed(2);
+    }
+
     function initCanvasChart() {
       canvas = document.getElementById('tradingCanvas');
       ctx = canvas.getContext('2d');
@@ -236,7 +246,7 @@
           last.low = Math.min(last.low, price);
           last.close = price;
         }
-        if (candleData.length > 30) candleData.shift();
+        if (candleData.length > 35) candleData.shift();
         drawChart();
       });
 
@@ -267,7 +277,7 @@
       let maxP = Math.max(...candleData.map(c => c.high));
       if (minP === maxP) { minP -= 0.0001; maxP += 0.0001; }
 
-      const candleWidth = (w - padding * 2) / 30;
+      const candleWidth = (w - padding * 2) / 35;
 
       candleData.forEach((c, i) => {
         const x = padding + i * candleWidth + candleWidth / 2;
@@ -280,13 +290,11 @@
         ctx.strokeStyle = isGreen ? '#00c853' : '#ff1744';
         ctx.fillStyle = isGreen ? '#00c853' : '#ff1744';
 
-        // Draw Wick
         ctx.beginPath();
         ctx.moveTo(x, highY);
         ctx.lineTo(x, lowY);
         ctx.stroke();
 
-        // Draw Body
         const bodyTop = Math.min(openY, closeY);
         const bodyHeight = Math.max(Math.abs(closeY - openY), 2);
         ctx.fillRect(x - candleWidth * 0.3, bodyTop, candleWidth * 0.6, bodyHeight);
@@ -295,23 +303,35 @@
 
     function placeTrade(type) {
       const amount = parseFloat(document.getElementById('trade-amount').value);
-      if (amount > currentBalance) { showToast("Insufficient Balance!"); return; }
+      const activeBal = isRealAccount ? realBalance : demoBalance;
 
-      currentBalance -= amount;
-      document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
+      if (amount > activeBal) { showToast("Insufficient Balance!"); return; }
 
-      socket.emit('place_trade', { userId: currentUserId, type, amount, durationSec: 60 });
+      if (isRealAccount) realBalance -= amount;
+      else demoBalance -= amount;
+
+      updateBalanceUI();
+
+      socket.emit('place_trade', { 
+        userId: currentUserId, 
+        accountType: isRealAccount ? 'REAL' : 'DEMO',
+        type, 
+        amount, 
+        durationSec: 60 
+      });
+
       showToast(`Trade Placed (${type})`);
     }
 
     socket.on('trade_result', (res) => {
       if (res.isWin) {
-        currentBalance += res.payout;
+        if (isRealAccount) realBalance += res.payout;
+        else demoBalance += res.payout;
         showToast(`WIN! Payout: $${res.payout.toFixed(2)}`);
       } else {
         showToast(`LOSS!`);
       }
-      document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
+      updateBalanceUI();
     });
 
     function calcBDT() {
@@ -322,13 +342,15 @@
     function submitDeposit() {
       const amt = parseFloat(document.getElementById('dep-amount').value);
       const trxId = document.getElementById('dep-trx').value;
+      const method = document.getElementById('dep-method').value;
+
       if (isNaN(amt) || amt < 5) { showToast("Minimum Deposit is $5"); return; }
       if (!trxId) { showToast("Enter TRX ID"); return; }
 
       fetch('/api/deposit', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUserId, amount: amt, method: 'bKash/Nagad', trxId })
-      }).then(() => showToast("Deposit Submitted for Approval"));
+        body: JSON.stringify({ userId: currentUserId, amount: amt, method, trxId })
+      }).then(() => showToast("Deposit Request Submitted for Admin Approval"));
     }
 
     function showPage(pageId, el) {
@@ -350,4 +372,4 @@
     }
   </script>
 </body>
-  </html>
+        </html>
