@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Admin Panel Route
+// Dedicated Admin Web Route
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
@@ -28,51 +28,41 @@ setInterval(() => {
   io.emit('price_tick', { timestamp: Date.now(), price: market.generateNextTick() });
 }, 100);
 
-// Auth Endpoints
+// User Authentication API
 app.post('/api/auth/register', (req, res) => {
   const { email, password, phone } = req.body;
-  if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password required' });
-  const result = market.registerUser(email, password, phone);
-  res.json(result);
+  if (!email || !password) return res.status(400).json({ success: false, message: 'Email & Password Required' });
+  res.json(market.registerUser(email, password, phone));
 });
 
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
-  const result = market.loginUser(email, password);
-  res.json(result);
+  res.json(market.loginUser(email, password));
 });
 
-// KYC Endpoint
-app.post('/api/kyc/submit', (req, res) => {
-  const { userId, name, nidNumber } = req.body;
-  const data = market.submitKYC(userId, name, nidNumber);
-  res.json({ success: true, message: 'KYC Submitted for Approval', data });
-});
-
-// Wallet Endpoints
+// Transactions API
 app.post('/api/deposit', (req, res) => {
   const { userId, amount, method, trxId } = req.body;
   const numAmt = parseFloat(amount);
-  if (isNaN(numAmt) || numAmt < 5) return res.status(400).json({ success: false, message: 'Minimum deposit is $5' });
+  if (isNaN(numAmt) || numAmt < 5) return res.status(400).json({ success: false, message: 'Minimum Deposit is $5' });
   const data = market.requestDeposit(userId || 'USER_101', numAmt, method, trxId);
-  res.json({ success: true, message: 'Deposit submitted for approval', data });
+  res.json({ success: true, message: 'Deposit Submitted for Approval', data });
 });
 
 app.post('/api/withdraw', (req, res) => {
   const { userId, amount, method, accountNo } = req.body;
   const numAmt = parseFloat(amount);
-  if (isNaN(numAmt) || numAmt < 10) return res.status(400).json({ success: false, message: 'Minimum withdrawal is $10' });
+  if (isNaN(numAmt) || numAmt < 10) return res.status(400).json({ success: false, message: 'Minimum Withdrawal is $10' });
   const data = market.requestWithdrawal(userId || 'USER_101', numAmt, method, accountNo);
-  res.json({ success: true, message: 'Withdrawal submitted for approval', data });
+  res.json({ success: true, message: 'Withdrawal Submitted for Approval', data });
 });
 
-// Admin Endpoints
+// Admin Control API
 app.get('/api/admin/data', (req, res) => {
   res.json({
     stats: market.getStats(),
     pendingDeposits: market.pendingDeposits,
-    pendingWithdrawals: market.pendingWithdrawals,
-    pendingKYCs: market.pendingKYCs
+    pendingWithdrawals: market.pendingWithdrawals
   });
 });
 
@@ -87,6 +77,7 @@ app.post('/api/admin/action', (req, res) => {
   }
 });
 
+// WebSockets Handling
 io.on('connection', (socket) => {
   socket.on('place_trade', (data) => {
     const entryPrice = market.currentPrice;
@@ -110,12 +101,15 @@ io.on('connection', (socket) => {
       if (data.type === 'CALL' && finalPrice > entryPrice) isWin = true;
       if (data.type === 'PUT' && finalPrice < entryPrice) isWin = true;
 
+      const payout = isWin ? (parseFloat(data.amount) * 1.85) : 0;
+      market.tradeHistory.push({ ...trade, closePrice: finalPrice, isWin, payout });
+
       socket.emit('trade_result', {
         tradeId: trade.id,
         isWin,
         entryPrice,
         closePrice: finalPrice,
-        payout: isWin ? (parseFloat(data.amount) * 1.85) : 0
+        payout
       });
     }, durationSec * 1000);
   });
@@ -127,4 +121,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`Engine running on port ${PORT}`));
+server.listen(PORT, () => console.log(`PRO-TRADE Engine running on port ${PORT}`));
