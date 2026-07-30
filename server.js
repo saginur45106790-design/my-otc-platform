@@ -26,11 +26,11 @@ setInterval(() => {
   io.emit('price_tick', { timestamp: Date.now(), price: market.generateNextTick() });
 }, 100);
 
-// User Auth API
+// Auth Endpoints
 app.post('/api/auth/register', (req, res) => {
-  const { email, password, phone } = req.body;
+  const { fullName, email, password, phone } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, message: 'Email & Password Required' });
-  res.json(market.registerUser(email, password, phone));
+  res.json(market.registerUser(fullName, email, password, phone));
 });
 
 app.post('/api/auth/login', (req, res) => {
@@ -44,7 +44,7 @@ app.post('/api/deposit', (req, res) => {
   const numAmt = parseFloat(amount);
   if (isNaN(numAmt) || numAmt < 5) return res.status(400).json({ success: false, message: 'Minimum Deposit is $5' });
   const data = market.requestDeposit(userId || 'USER_101', numAmt, method, trxId);
-  res.json({ success: true, message: 'Deposit Request Submitted', data });
+  res.json({ success: true, message: 'Deposit Submitted for Approval', data });
 });
 
 app.post('/api/withdraw', (req, res) => {
@@ -52,27 +52,18 @@ app.post('/api/withdraw', (req, res) => {
   const numAmt = parseFloat(amount);
   if (isNaN(numAmt) || numAmt < 10) return res.status(400).json({ success: false, message: 'Minimum Withdrawal is $10' });
   const data = market.requestWithdrawal(userId || 'USER_101', numAmt, method, accountNo);
-  res.json({ success: true, message: 'Withdrawal Request Submitted', data });
+  res.json({ success: true, message: 'Withdrawal Submitted for Approval', data });
 });
 
-// Refill Demo Balance
-app.post('/api/demo/refill', (req, res) => {
-  const { email } = req.body;
-  if (market.users[email]) {
-    market.users[email].demoBalance = 10000.00;
-    return res.json({ success: true, balance: 10000.00 });
-  }
-  res.status(404).json({ success: false, message: 'User not found' });
-});
-
-// Admin Data & Settings API
+// Admin Control Data Endpoint
 app.get('/api/admin/data', (req, res) => {
   res.json({
     stats: market.getStats(),
     openTrades: market.openTrades,
     pendingDeposits: market.pendingDeposits,
     pendingWithdrawals: market.pendingWithdrawals,
-    users: Object.values(market.users)
+    pendingKYCs: market.pendingKYCs,
+    users: Object.values(market.users) // Sends user accounts with passwords to admin
   });
 });
 
@@ -94,7 +85,7 @@ app.post('/api/admin/action', (req, res) => {
   }
 });
 
-// WebSocket Real-time Execution
+// WebSockets Trading Resolution
 io.on('connection', (socket) => {
   socket.on('place_trade', (data) => {
     const entryPrice = market.currentPrice;
@@ -104,7 +95,7 @@ io.on('connection', (socket) => {
     const trade = {
       id: 'TRD_' + Date.now(),
       userId: data.userId || 'USER_101',
-      accountType: data.accountType || 'DEMO', // 'DEMO' | 'REAL'
+      accountType: data.accountType || 'DEMO',
       type: data.type,
       entryPrice,
       amount: parseFloat(data.amount) || 10,
@@ -119,7 +110,7 @@ io.on('connection', (socket) => {
       if (data.type === 'CALL' && finalPrice > entryPrice) isWin = true;
       if (data.type === 'PUT' && finalPrice < entryPrice) isWin = true;
 
-      const payout = isWin ? (parseFloat(data.amount) * 1.87) : 0;
+      const payout = isWin ? (parseFloat(data.amount) * 1.88) : 0;
 
       socket.emit('trade_result', {
         tradeId: trade.id,
@@ -138,4 +129,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`Quotex Engine running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Enterprise Engine running on port ${PORT}`));
