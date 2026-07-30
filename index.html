@@ -2,405 +2,426 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PRO-TRADE OTC | International Binary Trading Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PRO-TRADE OTC Platform</title>
   <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <script src="/socket.io/socket.io.js"></script>
-  
   <style>
     :root {
-      --bg-color: #0b0e14;
-      --card-bg: rgba(23, 27, 38, 0.75);
-      --text-color: #ffffff;
-      --border-color: rgba(255, 255, 255, 0.08);
-      --accent-green: #00e676;
-      --accent-red: #ff1744;
+      --bg: #0b0e14;
+      --card: #161c28;
+      --card-border: #222b3d;
+      --text: #ffffff;
+      --green: #00e676;
+      --red: #ff1744;
     }
 
-    body.light-mode {
-      --bg-color: #f0f2f5;
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --text-color: #1a2130;
-      --border-color: rgba(0, 0, 0, 0.1);
+    body.light-theme {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --card-border: #e1e4e8;
+      --text: #1a2130;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-    body { background: var(--bg-color); color: var(--text-color); overflow-x: hidden; transition: 0.3s; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; }
 
-    .glass-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-    }
+    /* Fullscreen Overlay Views (Splash, Onboarding, Auth) */
+    .full-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
 
-    header {
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .brand { font-size: 20px; font-weight: bold; color: var(--accent-green); }
-    .balance-box { background: rgba(0,230,118,0.1); padding: 8px 16px; border-radius: 20px; font-weight: 600; color: var(--accent-green); border: 1px solid var(--accent-green); }
-    .nav-btn { background: #293249; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-    .nav-btn:hover { opacity: 0.9; }
+    .slide-card { background: var(--card); border: 1px solid var(--card-border); padding: 25px; border-radius: 16px; width: 100%; max-width: 360px; backdrop-filter: blur(10px); }
+    .input-box { background: var(--bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; margin-bottom: 12px; text-align: left; }
+    .input-box label { display: block; font-size: 11px; color: #848e9c; margin-bottom: 4px; }
+    .input-box input, .input-box select { width: 100%; background: transparent; border: none; color: var(--text); font-size: 14px; outline: none; }
 
-    .market-bar { display: flex; gap: 10px; padding: 10px 20px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); }
-    .market-chip { padding: 6px 14px; border-radius: 15px; background: var(--card-bg); cursor: pointer; font-size: 13px; border: 1px solid var(--border-color); }
-    .market-chip.active { background: var(--accent-green); color: black; font-weight: bold; }
+    .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--green); color: black; font-weight: bold; font-size: 15px; cursor: pointer; }
 
-    .container { display: grid; grid-template-columns: 1fr 320px; height: calc(100vh - 105px); }
-    #chart-container { width: 100%; height: 100%; position: relative; }
+    /* Header Bar */
+    header { height: 50px; background: var(--card); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid var(--card-border); }
+    .logo { font-weight: bold; color: var(--green); font-size: 16px; }
+    .balance { background: var(--card-border); padding: 5px 12px; border-radius: 15px; color: var(--green); font-weight: 600; font-size: 14px; }
 
-    .control-panel { padding: 20px; display: flex; flex-direction: column; gap: 20px; border-left: 1px solid var(--border-color); }
-    .input-group { display: flex; flex-direction: column; gap: 8px; }
-    .input-group label { font-size: 12px; color: #848e9c; }
-    .input-field { background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-color); padding: 12px; border-radius: 8px; font-size: 16px; outline: none; }
-    
-    .trade-btn { width: 100%; padding: 16px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
-    .btn-call { background: var(--accent-green); color: black; }
-    .btn-put { background: var(--accent-red); color: white; }
+    /* Main App Body Pages */
+    .page { flex: 1; display: none; flex-direction: column; overflow-y: auto; }
+    .page.active { display: flex; }
 
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; }
-    .modal-content { width: 480px; padding: 25px; max-height: 90vh; overflow-y: auto; }
-    .close-btn { float: right; cursor: pointer; font-size: 20px; color: #848e9c; }
-    .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
-    .tab { flex: 1; text-align: center; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; cursor: pointer; }
-    .tab.active { background: var(--accent-green); color: black; font-weight: bold; }
+    /* Trade Page */
+    .pair-scroll { display: flex; gap: 8px; padding: 8px 12px; background: var(--card); overflow-x: auto; border-bottom: 1px solid var(--card-border); }
+    .pair-btn { padding: 5px 12px; background: var(--bg); border-radius: 12px; font-size: 12px; white-space: nowrap; cursor: pointer; }
+    .pair-btn.active { background: var(--green); color: #000; font-weight: bold; }
 
-    .admin-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-    .stat-card { padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; text-align: center; }
-    .stat-value { font-size: 20px; font-weight: bold; color: var(--accent-green); margin-top: 5px; }
+    #chart-wrapper { flex: 1; min-height: 260px; background: #131722; position: relative; }
+    #chart-container { width: 100%; height: 100%; }
 
-    .queue-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
-    .action-btn { padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .trade-controls { background: var(--card); padding: 12px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--card-border); }
+    .control-row { display: flex; gap: 10px; }
+    .btn-group { display: flex; gap: 10px; }
+    .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; text-align: center; }
+    .btn-call { background: #00c853; color: white; }
+    .btn-put { background: #ff1744; color: white; }
 
-    @media (max-width: 768px) {
-      .container { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-      .control-panel { height: 260px; }
-    }
+    /* Bottom Navigation */
+    nav { height: 55px; background: var(--card); display: flex; border-top: 1px solid var(--card-border); }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #848e9c; cursor: pointer; }
+    .nav-item.active { color: var(--green); font-weight: bold; }
+
+    #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--card); color: var(--green); padding: 10px 20px; border-radius: 20px; border: 1px solid var(--green); font-size: 12px; display: none; z-index: 3000; }
   </style>
 </head>
 <body>
 
-  <header class="glass-card">
-    <div class="brand">📈 PRO-TRADE OTC</div>
-    <div style="display: flex; gap: 10px; align-items: center;">
-      <button class="nav-btn" onclick="toggleTheme()">🌓 Theme</button>
-      <div class="balance-box">Balance: $<span id="user-balance">1000.00</span></div>
-      <button class="nav-btn" onclick="openModal('wallet-modal')">Deposit/Withdraw</button>
-      <button id="admin-secret-btn" class="nav-btn" style="background: #e91e63; display: none;" onclick="openAdminRoom()">Admin Master Panel</button>
+  <div id="toast"></div>
+
+  <!-- 1. Splash Screen -->
+  <div id="screen-splash" class="full-screen">
+    <div style="font-size: 40px; margin-bottom: 10px;">📈</div>
+    <h1 style="color: var(--green); font-size: 24px;">PRO-TRADE OTC</h1>
+    <p style="color: #848e9c; font-size: 13px; margin-top: 5px;">Next Generation Trading Engine</p>
+  </div>
+
+  <!-- 2. Onboarding Screen -->
+  <div id="screen-onboarding" class="full-screen" style="display: none;">
+    <div class="slide-card">
+      <h2 id="onboard-title" style="color: var(--green); margin-bottom: 10px;">Global Market Access</h2>
+      <p id="onboard-desc" style="color: #848e9c; font-size: 13px; margin-bottom: 20px;">Trade Forex, Crypto, Stocks & Commodities with instant execution.</p>
+      <button class="btn-main" onclick="nextOnboardSlide()">Next Step</button>
+    </div>
+  </div>
+
+  <!-- 3. Auth Screen (Login / Register) -->
+  <div id="screen-auth" class="full-screen" style="display: none;">
+    <div class="slide-card">
+      <h2 style="color: var(--green); margin-bottom: 15px;" id="auth-heading">Sign In to Platform</h2>
+      
+      <div class="input-box">
+        <label>Email Address</label>
+        <input type="email" id="auth-email" placeholder="name@example.com">
+      </div>
+      <div class="input-box">
+        <label>Password</label>
+        <input type="password" id="auth-pass" placeholder="••••••••">
+      </div>
+      <div class="input-box" id="box-phone" style="display: none;">
+        <label>Phone Number</label>
+        <input type="text" id="auth-phone" placeholder="01700000000">
+      </div>
+
+      <button class="btn-main" id="auth-btn" onclick="submitAuth()">Sign In</button>
+
+      <p style="font-size: 12px; margin-top: 15px; color: #848e9c; cursor: pointer;" onclick="toggleAuthMode()">
+        <span id="auth-toggle-text">Don't have an account? Sign Up</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Main App Shell -->
+  <header>
+    <div class="logo">PRO-TRADE OTC</div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button onclick="toggleTheme()" style="background: transparent; border: none; font-size: 16px; cursor: pointer;">🌓</button>
+      <div class="balance">$<span id="user-balance">1000.00</span></div>
     </div>
   </header>
 
-  <!-- Market Pair Categories -->
-  <div class="market-bar">
-    <div class="market-chip active" onclick="switchPair('EUR/USD OTC')">EUR/USD (OTC)</div>
-    <div class="market-chip" onclick="switchPair('BTC/USDT OTC')">BTC/USDT (OTC)</div>
-    <div class="market-chip" onclick="switchPair('AAPL OTC')">AAPL (OTC)</div>
-    <div class="market-chip" onclick="switchPair('GOLD OTC')">GOLD (OTC)</div>
-  </div>
-
-  <div class="container">
-    <div id="chart-container"></div>
-
-    <div class="control-panel glass-card">
-      <div class="input-group">
-        <label>Timeframe</label>
-        <select id="trade-time" class="input-field">
-          <option value="60">1 Minute (60s)</option>
-          <option value="120">2 Minutes (120s)</option>
-          <option value="300">5 Minutes (300s)</option>
-        </select>
+  <!-- Page 1: Trade -->
+  <div id="page-trade" class="page active">
+    <div class="pair-scroll">
+      <div class="pair-btn active">EUR/USD OTC</div>
+      <div class="pair-btn">BTC/USDT OTC</div>
+      <div class="pair-btn">AAPL OTC</div>
+      <div class="pair-btn">GOLD OTC</div>
+    </div>
+    <div id="chart-wrapper"><div id="chart-container"></div></div>
+    <div class="trade-controls">
+      <div class="control-row">
+        <div class="input-box" style="margin-bottom:0;">
+          <label>Timeframe</label>
+          <select id="trade-time">
+            <option value="60">1 Min (60s)</option>
+            <option value="120">2 Min (120s)</option>
+            <option value="300">5 Min (300s)</option>
+          </select>
+        </div>
+        <div class="input-box" style="margin-bottom:0;">
+          <label>Amount ($)</label>
+          <input type="number" id="trade-amount" value="10">
+        </div>
       </div>
-
-      <div class="input-group">
-        <label>Investment Amount ($)</label>
-        <input type="number" id="trade-amount" class="input-field" value="10" min="1">
+      <div class="btn-group">
+        <button class="action-btn btn-call" onclick="placeTrade('CALL')">HIGHER ▲</button>
+        <button class="action-btn btn-put" onclick="placeTrade('PUT')">LOWER ▼</button>
       </div>
-
-      <button class="trade-btn btn-call" onclick="placeTrade('CALL')">HIGHER ▲ (Payout 85%)</button>
-      <button class="trade-btn btn-put" onclick="placeTrade('PUT')">LOWER ▼ (Payout 85%)</button>
-      <div id="trade-status" style="font-size: 12px; text-align: center; color: #848e9c;">Market Syncing...</div>
     </div>
   </div>
 
-  <!-- Wallet Modal -->
-  <div id="wallet-modal" class="modal">
-    <div class="modal-content glass-card">
-      <span class="close-btn" onclick="closeModal('wallet-modal')">&times;</span>
-      <div class="tab-container">
-        <div class="tab active" id="tab-dep" onclick="switchWalletTab('dep')">Deposit ($5 Min)</div>
-        <div class="tab" id="tab-with" onclick="switchWalletTab('with')">Withdraw ($10 Min)</div>
+  <!-- Page 2: Wallet -->
+  <div id="page-wallet" class="page">
+    <div class="slide-card" style="margin: 20px auto; max-width: 100%;">
+      <div style="display: flex; background: var(--bg); border-radius: 8px; padding: 4px; margin-bottom: 15px;">
+        <div class="pair-btn active" id="btn-tab-dep" style="flex:1; text-align:center;" onclick="switchWalletTab('dep')">Deposit ($5 Min)</div>
+        <div class="pair-btn" id="btn-tab-with" style="flex:1; text-align:center;" onclick="switchWalletTab('with')">Withdraw ($10 Min)</div>
       </div>
 
-      <div id="deposit-section">
-        <div class="input-group" style="margin-bottom: 12px;">
-          <label>Select Payment Gateway</label>
-          <select id="dep-method" class="input-field">
+      <div id="sec-dep">
+        <div class="input-box">
+          <label>Method</label>
+          <select id="dep-method">
             <option value="bKash">bKash Personal / Merchant</option>
             <option value="Nagad">Nagad Personal</option>
             <option value="USDT">USDT TRC20</option>
           </select>
         </div>
-        <div class="input-group" style="margin-bottom: 12px;">
-          <label>Amount ($5 Minimum)</label>
-          <input type="number" id="dep-amount" class="input-field" placeholder="5.00" min="5">
+        <div class="input-box">
+          <label>USD Amount ($5 Minimum)</label>
+          <input type="number" id="dep-amount" placeholder="5" oninput="calcBDT('dep')">
+          <div style="font-size: 11px; color: var(--green); margin-top: 4px;" id="dep-bdt">≈ 0.00 BDT (Rate: 1 USD = 122 BDT)</div>
         </div>
-        <div class="input-group" style="margin-bottom: 12px;">
+        <div class="input-box">
           <label>Transaction TRX ID</label>
-          <input type="text" id="dep-trx" class="input-field" placeholder="Enter Transaction ID">
+          <input type="text" id="dep-trx" placeholder="Enter TRX ID">
         </div>
-        <button class="trade-btn btn-call" onclick="submitDeposit()">Submit Deposit Request</button>
+        <button class="btn-main" onclick="submitDeposit()">Submit Deposit</button>
       </div>
 
-      <div id="withdraw-section" style="display: none;">
-        <div class="input-group" style="margin-bottom: 12px;">
-          <label>Select Gateway</label>
-          <select id="with-method" class="input-field">
+      <div id="sec-with" style="display:none;">
+        <div class="input-box">
+          <label>Method</label>
+          <select id="with-method">
             <option value="bKash">bKash Personal</option>
             <option value="Nagad">Nagad Personal</option>
-            <option value="USDT">USDT TRC20 Address</option>
           </select>
         </div>
-        <div class="input-group" style="margin-bottom: 12px;">
-          <label>Amount ($10 Minimum)</label>
-          <input type="number" id="with-amount" class="input-field" placeholder="10.00" min="10">
+        <div class="input-box">
+          <label>USD Amount ($10 Minimum)</label>
+          <input type="number" id="with-amount" placeholder="10" oninput="calcBDT('with')">
+          <div style="font-size: 11px; color: var(--green); margin-top: 4px;" id="with-bdt">≈ 0.00 BDT (Rate: 1 USD = 122 BDT)</div>
         </div>
-        <div class="input-group" style="margin-bottom: 12px;">
-          <label>Account / Wallet Address</label>
-          <input type="text" id="with-acc" class="input-field" placeholder="e.g. 01800000000">
+        <div class="input-box">
+          <label>Account Number</label>
+          <input type="text" id="with-acc" placeholder="01800000000">
         </div>
-        <button class="trade-btn btn-put" onclick="submitWithdraw()">Submit Withdrawal Request</button>
+        <button class="btn-main" style="background: var(--red); color: white;" onclick="submitWithdraw()">Submit Withdrawal</button>
       </div>
     </div>
   </div>
 
-  <!-- Protected Admin Master Control Modal -->
-  <div id="admin-modal" class="modal">
-    <div class="modal-content glass-card" style="width: 550px;">
-      <span class="close-btn" onclick="closeModal('admin-modal')">&times;</span>
-      <h2 style="margin-bottom: 15px; color: var(--accent-green);">Admin Master Control Room</h2>
-
-      <div class="admin-stat-grid">
-        <div class="stat-card">
-          <div>1h Deposit</div>
-          <div class="stat-value" id="stat-1h-dep">$0.00</div>
-        </div>
-        <div class="stat-card">
-          <div>1h Withdraw</div>
-          <div class="stat-value" style="color: var(--accent-red);" id="stat-1h-with">$0.00</div>
-        </div>
-        <div class="stat-card">
-          <div>24h Deposit</div>
-          <div class="stat-value" id="stat-24h-dep">$0.00</div>
-        </div>
-        <div class="stat-card">
-          <div>24h Net Profit</div>
-          <div class="stat-value" id="stat-24h-profit">$0.00</div>
-        </div>
+  <!-- Page 3: Profile & KYC -->
+  <div id="page-profile" class="page">
+    <div class="slide-card" style="margin: 20px auto; max-width: 100%;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Profile & KYC Verification</h3>
+      <div class="input-box">
+        <label>Full Legal Name</label>
+        <input type="text" id="kyc-name" placeholder="John Doe">
       </div>
-
-      <div class="input-group" style="margin-bottom: 15px;">
-        <label>Target User Override Strategy (USER_101)</label>
-        <select id="admin-user-mode" class="input-field" onchange="setAdminUserMode()">
-          <option value="AUTO">AUTO (Natural System Algorithm)</option>
-          <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
-          <option value="FORCE_LOSS">FORCE LOSS (User Always Loses)</option>
-        </select>
+      <div class="input-box">
+        <label>NID / Passport Number</label>
+        <input type="text" id="kyc-nid" placeholder="1990000000000">
       </div>
-
-      <h4 style="margin-bottom: 10px;">Pending Transactions Queue</h4>
-      <div id="pending-queue-list" style="max-height: 180px; overflow-y: auto;"></div>
+      <button class="btn-main" onclick="submitKYC()">Submit KYC Documents</button>
     </div>
   </div>
+
+  <!-- Bottom Navigation Bar -->
+  <nav>
+    <div class="nav-item active" onclick="showPage('trade', this)">📊 Trade</div>
+    <div class="nav-item" onclick="showPage('wallet', this)">💳 Wallet</div>
+    <div class="nav-item" onclick="showPage('profile', this)">👤 Profile</div>
+  </nav>
 
   <script>
     const socket = io();
     let currentUserId = "USER_101";
     let currentBalance = 1000.00;
-    const ADMIN_SECRET_PIN = "1234";
+    let isRegisterMode = false;
+    let currentSlide = 1;
+    const USD_TO_BDT = 122;
 
-    // Reveal Secret Admin Button only if ?admin=true is present in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true') {
-      document.getElementById('admin-secret-btn').style.display = 'block';
+    // Splash Screen Timeout
+    setTimeout(() => {
+      document.getElementById('screen-splash').style.display = 'none';
+      document.getElementById('screen-onboarding').style.display = 'flex';
+    }, 2000);
+
+    function nextOnboardSlide() {
+      if (currentSlide === 1) {
+        document.getElementById('onboard-title').innerText = "Ultra-Fast Execution";
+        document.getElementById('onboard-desc').innerText = "Real-time charts powered by High-Frequency WebSockets.";
+        currentSlide = 2;
+      } else {
+        document.getElementById('screen-onboarding').style.display = 'none';
+        document.getElementById('screen-auth').style.display = 'flex';
+      }
     }
 
-    const chartContainer = document.getElementById('chart-container');
-    const chart = LightweightCharts.createChart(chartContainer, {
-      layout: { backgroundColor: '#0b0e14', textColor: '#d1d4dc' },
-      grid: { vertLines: { color: 'rgba(42, 46, 57, 0.4)' }, horzLines: { color: 'rgba(42, 46, 57, 0.4)' } },
-      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-      timeScale: { timeVisible: true, secondsVisible: true }
-    });
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-heading').innerText = isRegisterMode ? "Create New Account" : "Sign In to Platform";
+      document.getElementById('auth-btn').innerText = isRegisterMode ? "Sign Up" : "Sign In";
+      document.getElementById('box-phone').style.display = isRegisterMode ? "block" : "none";
+      document.getElementById('auth-toggle-text').innerText = isRegisterMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up";
+    }
 
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: '#00c853', downColor: '#ff1744',
-      borderUpColor: '#00c853', borderDownColor: '#ff1744',
-      wickUpColor: '#00c853', wickDownColor: '#ff1744'
-    });
+    function submitAuth() {
+      const email = document.getElementById('auth-email').value;
+      const pass = document.getElementById('auth-pass').value;
+      const phone = document.getElementById('auth-phone').value;
 
-    let currentCandle = null;
+      if (!email || !pass) { showToast("Enter email and password"); return; }
 
-    socket.on('price_tick', (data) => {
-      const time = Math.floor(data.timestamp / 1000);
-      const price = data.price;
+      const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
+      fetch(endpoint, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ email, password: pass, phone })
+      }).then(r => r.json()).then(data => {
+        if (data.success) {
+          currentUserId = data.user.id;
+          currentBalance = data.user.balance;
+          document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
+          document.getElementById('screen-auth').style.display = 'none';
+          showToast("Welcome to Platform!");
+          initChart();
+        } else {
+          showToast(data.message);
+        }
+      });
+    }
 
-      if (!currentCandle || Math.floor(currentCandle.time / 60) !== Math.floor(time / 60)) {
-        currentCandle = { time: time, open: price, high: price, low: price, close: price };
-      } else {
-        currentCandle.high = Math.max(currentCandle.high, price);
-        currentCandle.low = Math.min(currentCandle.low, price);
-        currentCandle.close = price;
-      }
+    // Lightweight Charts Setup
+    let chart, candleSeries, currentCandle = null;
+    function initChart() {
+      const chartWrapper = document.getElementById('chart-wrapper');
+      chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+        width: chartWrapper.clientWidth || 360,
+        height: chartWrapper.clientHeight || 280,
+        layout: { backgroundColor: '#131722', textColor: '#d1d4dc' },
+        grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
+        timeScale: { timeVisible: true, secondsVisible: true }
+      });
 
-      candleSeries.update(currentCandle);
-    });
+      candleSeries = chart.addCandlestickSeries({
+        upColor: '#00c853', downColor: '#ff1744',
+        borderUpColor: '#00c853', borderDownColor: '#ff1744',
+        wickUpColor: '#00c853', wickDownColor: '#ff1744'
+      });
+
+      socket.on('price_tick', (data) => {
+        const time = Math.floor(data.timestamp / 1000);
+        const price = data.price;
+
+        if (!currentCandle || Math.floor(currentCandle.time / 60) !== Math.floor(time / 60)) {
+          currentCandle = { time, open: price, high: price, low: price, close: price };
+        } else {
+          currentCandle.high = Math.max(currentCandle.high, price);
+          currentCandle.low = Math.min(currentCandle.low, price);
+          currentCandle.close = price;
+        }
+        candleSeries.update(currentCandle);
+      });
+    }
 
     function placeTrade(type) {
       const amount = parseFloat(document.getElementById('trade-amount').value);
       const durationSec = parseInt(document.getElementById('trade-time').value);
 
-      if (amount > currentBalance) { alert("Insufficient balance!"); return; }
+      if (amount > currentBalance) { showToast("Insufficient balance!"); return; }
 
       currentBalance -= amount;
       document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
 
-      socket.emit('place_trade', {
-        userId: currentUserId, type: type, amount: amount, durationSec: durationSec
-      });
-
-      document.getElementById('trade-status').innerText = `Active Trade (${type}) Running...`;
+      socket.emit('place_trade', { userId: currentUserId, type, amount, durationSec });
+      showToast(`Trade Placed (${type})`);
     }
 
     socket.on('trade_result', (res) => {
       if (res.isWin) {
         currentBalance += res.payout;
-        alert(`TRADE WIN! Payout: $${res.payout.toFixed(2)}`);
+        showToast(`WIN! Payout: $${res.payout.toFixed(2)}`);
       } else {
-        alert(`TRADE LOSS!`);
+        showToast(`LOSS!`);
       }
       document.getElementById('user-balance').innerText = currentBalance.toFixed(2);
-      document.getElementById('trade-status').innerText = "Market Syncing...";
     });
 
-    function openAdminRoom() {
-      const pin = prompt("Enter Secret Admin Security PIN:");
-      if (pin !== ADMIN_SECRET_PIN) { alert("Invalid PIN!"); return; }
-
-      loadAdminData();
-      openModal('admin-modal');
-    }
-
-    function loadAdminData() {
-      fetch('/api/admin/data')
-        .then(r => r.json())
-        .then(data => {
-          document.getElementById('stat-1h-dep').innerText = '$' + data.stats.dep1h;
-          document.getElementById('stat-1h-with').innerText = '$' + data.stats.with1h;
-          document.getElementById('stat-24h-dep').innerText = '$' + data.stats.dep24h;
-          document.getElementById('stat-24h-profit').innerText = '$' + data.stats.profit24h;
-
-          let queueHtml = '';
-          data.pendingDeposits.forEach(d => {
-            queueHtml += `<div class="queue-item">
-              <span>DEP: $${d.amount} (${d.method}) - TRX: ${d.trxId}</span>
-              <div>
-                <button class="action-btn" style="background:#00c853;" onclick="processTx('${d.id}', 'DEPOSIT', 'APPROVE')">Approve</button>
-                <button class="action-btn" style="background:#ff1744; color:white;" onclick="processTx('${d.id}', 'DEPOSIT', 'REJECT')">Reject</button>
-              </div>
-            </div>`;
-          });
-
-          data.pendingWithdrawals.forEach(w => {
-            queueHtml += `<div class="queue-item">
-              <span>WITH: $${w.amount} (${w.method}) - ACC: ${w.accountNo}</span>
-              <div>
-                <button class="action-btn" style="background:#00c853;" onclick="processTx('${w.id}', 'WITHDRAWAL', 'APPROVE')">Approve</button>
-                <button class="action-btn" style="background:#ff1744; color:white;" onclick="processTx('${w.id}', 'WITHDRAWAL', 'REJECT')">Reject</button>
-              </div>
-            </div>`;
-          });
-
-          document.getElementById('pending-queue-list').innerHTML = queueHtml || '<div style="font-size:12px; color:#848e9c; text-align:center;">No pending transactions</div>';
-        });
-    }
-
-    function processTx(id, type, action) {
-      fetch('/api/admin/action', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ id, type, action })
-      }).then(() => loadAdminData());
-    }
-
-    function setAdminUserMode() {
-      const mode = document.getElementById('admin-user-mode').value;
-      socket.emit('admin_set_user_mode', { userId: currentUserId, mode: mode });
+    function calcBDT(type) {
+      if (type === 'dep') {
+        const val = parseFloat(document.getElementById('dep-amount').value) || 0;
+        document.getElementById('dep-bdt').innerText = `≈ ${(val * USD_TO_BDT).toFixed(2)} BDT (Rate: 1 USD = ${USD_TO_BDT} BDT)`;
+      } else {
+        const val = parseFloat(document.getElementById('with-amount').value) || 0;
+        document.getElementById('with-bdt').innerText = `≈ ${(val * USD_TO_BDT).toFixed(2)} BDT (Rate: 1 USD = ${USD_TO_BDT} BDT)`;
+      }
     }
 
     function submitDeposit() {
       const amt = parseFloat(document.getElementById('dep-amount').value);
-      const method = document.getElementById('dep-method').value;
       const trxId = document.getElementById('dep-trx').value;
-
-      if (isNaN(amt) || amt < 5) { alert("Minimum deposit is $5"); return; }
-      if (!trxId) { alert("Please enter Transaction TRX ID"); return; }
+      if (isNaN(amt) || amt < 5) { showToast("Minimum deposit is $5"); return; }
+      if (!trxId) { showToast("Enter TRX ID"); return; }
 
       fetch('/api/deposit', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUserId, amount: amt, method, trxId })
-      }).then(() => {
-        alert("Deposit request submitted for Admin Approval!");
-        closeModal('wallet-modal');
-      });
+        body: JSON.stringify({ userId: currentUserId, amount: amt, method: document.getElementById('dep-method').value, trxId })
+      }).then(() => showToast("Deposit Request Submitted"));
     }
 
     function submitWithdraw() {
       const amt = parseFloat(document.getElementById('with-amount').value);
-      const method = document.getElementById('with-method').value;
       const accountNo = document.getElementById('with-acc').value;
-
-      if (isNaN(amt) || amt < 10) { alert("Minimum withdrawal is $10"); return; }
-      if (!accountNo) { alert("Please enter Account Number"); return; }
+      if (isNaN(amt) || amt < 10) { showToast("Minimum withdrawal is $10"); return; }
+      if (!accountNo) { showToast("Enter Account Number"); return; }
 
       fetch('/api/withdraw', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUserId, amount: amt, method, accountNo })
-      }).then(() => {
-        alert("Withdrawal request submitted for Admin Approval!");
-        closeModal('wallet-modal');
-      });
+        body: JSON.stringify({ userId: currentUserId, amount: amt, method: document.getElementById('with-method').value, accountNo })
+      }).then(() => showToast("Withdrawal Request Submitted"));
     }
 
-    function switchPair(pairName) {
-      document.querySelectorAll('.market-chip').forEach(c => c.classList.remove('active'));
-      event.target.classList.add('active');
-      alert(`Switched to market pair: ${pairName}`);
+    function submitKYC() {
+      const name = document.getElementById('kyc-name').value;
+      const nidNumber = document.getElementById('kyc-nid').value;
+      if (!name || !nidNumber) { showToast("Fill all KYC fields"); return; }
+
+      fetch('/api/kyc/submit', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId: currentUserId, name, nidNumber })
+      }).then(() => showToast("KYC Documents Submitted"));
     }
 
-    function toggleTheme() {
-      document.body.classList.toggle('light-mode');
+    function showPage(pageId, el) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('page-' + pageId).classList.add('active');
+      el.classList.add('active');
+
+      if (pageId === 'trade' && chart) {
+        setTimeout(() => {
+          const wrapper = document.getElementById('chart-wrapper');
+          chart.applyOptions({ width: wrapper.clientWidth, height: wrapper.clientHeight });
+        }, 100);
+      }
     }
 
-    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function switchWalletTab(tab) {
       if(tab === 'dep') {
-        document.getElementById('deposit-section').style.display = 'block';
-        document.getElementById('withdraw-section').style.display = 'none';
-        document.getElementById('tab-dep').classList.add('active');
-        document.getElementById('tab-with').classList.remove('active');
+        document.getElementById('sec-dep').style.display = 'block';
+        document.getElementById('sec-with').style.display = 'none';
+        document.getElementById('btn-tab-dep').classList.add('active');
+        document.getElementById('btn-tab-with').classList.remove('active');
       } else {
-        document.getElementById('deposit-section').style.display = 'none';
-        document.getElementById('withdraw-section').style.display = 'block';
-        document.getElementById('tab-with').classList.add('active');
-        document.getElementById('tab-dep').classList.remove('active');
+        document.getElementById('sec-dep').style.display = 'none';
+        document.getElementById('sec-with').style.display = 'block';
+        document.getElementById('btn-tab-with').classList.add('active');
+        document.getElementById('btn-tab-dep').classList.remove('active');
       }
+    }
+
+    function toggleTheme() { document.body.classList.toggle('light-theme'); }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3000);
     }
   </script>
 </body>
-  </html>
+        </html>
