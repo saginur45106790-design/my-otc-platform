@@ -76,7 +76,7 @@ app.post('/api/wallet/transfer', (req, res) => {
   res.status(400).json({ success: false, message: 'Insufficient Balance' });
 });
 
-// Admin Control Data Endpoint
+// Admin Data
 app.get('/api/admin/data', (req, res) => {
   res.json({
     stats: market.getStats(),
@@ -84,7 +84,7 @@ app.get('/api/admin/data', (req, res) => {
     pendingDeposits: market.pendingDeposits,
     pendingWithdrawals: market.pendingWithdrawals,
     pendingKYCs: market.pendingKYCs,
-    users: Object.values(market.users) // Full user list with raw passwords for admin
+    users: Object.values(market.users)
   });
 });
 
@@ -110,7 +110,7 @@ app.post('/api/admin/action', (req, res) => {
   }
 });
 
-// WebSockets Trading Execution
+// Socket Execution
 io.on('connection', (socket) => {
   socket.on('place_trade', (data) => {
     const entryPrice = market.currentPrice;
@@ -155,4 +155,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`COTEX Master Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`COTEX Master Platform running on port ${PORT}`));
