@@ -141,9 +141,7 @@ class MarketEngine {
       houseEdge: this.globalHouseEdge,
       bigBetThreshold: this.bigBetThreshold
     };
-  }
-
-  // Geometric Brownian Motion Algorithm
+  } // Geometric Brownian Motion Algorithm
   generateNextTick() {
     const dt = 0.1;
     const drift = (Math.random() - 0.499) * 0.00002;
