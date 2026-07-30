@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>COTEX Master Admin Panel</title>
+  <title>COTEX Master Admin Suite</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
     body { background: #0b0e14; color: white; padding: 20px; }
@@ -65,7 +65,7 @@
     </div>
 
     <div class="card">
-      <h2>Registered User Vault (Email & Plain Password)</h2>
+      <h2>Registered User Vault (Plain Password & Balance)</h2>
       <table id="user-table">
         <thead>
           <tr>
@@ -75,6 +75,7 @@
             <th>Password</th>
             <th>Phone</th>
             <th>Main Wallet</th>
+            <th>KYC Status</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -84,6 +85,11 @@
     <div class="card">
       <h2>Pending Deposits & Withdrawals Queue</h2>
       <div id="queue-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Pending KYC Approvals Queue</h2>
+      <div id="kyc-list"></div>
     </div>
   </div>
 
@@ -122,9 +128,10 @@
               <td style="color:#00e676; font-weight:bold;">${u.password}</td>
               <td>${u.phone}</td>
               <td>$${u.mainWallet.toFixed(2)}</td>
+              <td>${u.kycStatus}</td>
             </tr>`;
           });
-          document.querySelector('#user-table tbody').innerHTML = uHtml || '<tr><td colspan="6">No registered users</td></tr>';
+          document.querySelector('#user-table tbody').innerHTML = uHtml || '<tr><td colspan="7">No registered users</td></tr>';
 
           let html = '';
           data.pendingDeposits.forEach(d => {
@@ -148,6 +155,17 @@
           });
 
           document.getElementById('queue-list').innerHTML = html || 'No pending financial requests';
+
+          let kycHtml = '';
+          data.pendingKYCs.forEach(k => {
+            kycHtml += `<div class="queue-row">
+              <span>KYC: User ${k.userId} - NID: ${k.nidNumber}</span>
+              <div>
+                <button class="btn-approve" onclick="action('${k.id}', 'KYC', 'APPROVE')">Approve KYC</button>
+              </div>
+            </div>`;
+          });
+          document.getElementById('kyc-list').innerHTML = kycHtml || 'No pending KYC submissions';
         });
     }
 
