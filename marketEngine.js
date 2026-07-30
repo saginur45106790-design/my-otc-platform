@@ -3,36 +3,27 @@ class MarketEngine {
     this.currentPrice = initialPrice;
     this.volatility = volatility;
     this.openTrades = [];
+    this.tradeHistory = [];
     this.userModes = {}; // { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
     
-    this.users = {}; // Registered Users Store
+    this.users = {};
     this.pendingDeposits = [];
     this.pendingWithdrawals = [];
     this.approvedDeposits = [];
     this.approvedWithdrawals = [];
-    this.pendingKYCs = [];
   }
 
-  // Register User
   registerUser(email, password, phone) {
     if (this.users[email]) return { success: false, message: 'User already exists' };
-    const user = { id: 'USR_' + Date.now(), email, password, phone, balance: 1000.00, kycStatus: 'NOT_SUBMITTED' };
+    const user = { id: 'USR_' + Math.floor(1000 + Math.random() * 9000), email, password, phone, balance: 1000.00 };
     this.users[email] = user;
     return { success: true, user };
   }
 
-  // Login User
   loginUser(email, password) {
     const user = this.users[email];
-    if (!user || user.password !== password) return { success: false, message: 'Invalid Credentials' };
+    if (!user || user.password !== password) return { success: false, message: 'Invalid Email or Password' };
     return { success: true, user };
-  }
-
-  // Submit KYC
-  submitKYC(userId, name, nidNumber) {
-    const kycReq = { id: 'KYC_' + Date.now(), userId, name, nidNumber, timestamp: Date.now(), status: 'PENDING' };
-    this.pendingKYCs.push(kycReq);
-    return kycReq;
   }
 
   requestDeposit(userId, amount, method, trxId) {
@@ -112,7 +103,7 @@ class MarketEngine {
     };
   }
 
-  // Geometric Brownian Motion Algorithm (dS_t = \mu S_t dt + \sigma S_t dW_t)
+  // Geometric Brownian Motion Tick Generator
   generateNextTick() {
     const dt = 0.1;
     const drift = (Math.random() - 0.499) * 0.00002;
@@ -132,6 +123,7 @@ class MarketEngine {
     this.openTrades.push(trade);
   }
 
+  // Invisible Last-Second Micro-Shift Control
   processManipulations() {
     const now = Date.now();
 
