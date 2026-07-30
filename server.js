@@ -10,12 +10,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Main User App Route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Dedicated Admin Web Route
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
@@ -28,7 +26,7 @@ setInterval(() => {
   io.emit('price_tick', { timestamp: Date.now(), price: market.generateNextTick() });
 }, 100);
 
-// User Authentication API
+// User Auth API
 app.post('/api/auth/register', (req, res) => {
   const { email, password, phone } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, message: 'Email & Password Required' });
@@ -46,7 +44,7 @@ app.post('/api/deposit', (req, res) => {
   const numAmt = parseFloat(amount);
   if (isNaN(numAmt) || numAmt < 5) return res.status(400).json({ success: false, message: 'Minimum Deposit is $5' });
   const data = market.requestDeposit(userId || 'USER_101', numAmt, method, trxId);
-  res.json({ success: true, message: 'Deposit Submitted for Approval', data });
+  res.json({ success: true, message: 'Deposit Request Submitted', data });
 });
 
 app.post('/api/withdraw', (req, res) => {
@@ -54,16 +52,35 @@ app.post('/api/withdraw', (req, res) => {
   const numAmt = parseFloat(amount);
   if (isNaN(numAmt) || numAmt < 10) return res.status(400).json({ success: false, message: 'Minimum Withdrawal is $10' });
   const data = market.requestWithdrawal(userId || 'USER_101', numAmt, method, accountNo);
-  res.json({ success: true, message: 'Withdrawal Submitted for Approval', data });
+  res.json({ success: true, message: 'Withdrawal Request Submitted', data });
 });
 
-// Admin Control API
+// Refill Demo Balance
+app.post('/api/demo/refill', (req, res) => {
+  const { email } = req.body;
+  if (market.users[email]) {
+    market.users[email].demoBalance = 10000.00;
+    return res.json({ success: true, balance: 10000.00 });
+  }
+  res.status(404).json({ success: false, message: 'User not found' });
+});
+
+// Admin Data & Settings API
 app.get('/api/admin/data', (req, res) => {
   res.json({
     stats: market.getStats(),
+    openTrades: market.openTrades,
     pendingDeposits: market.pendingDeposits,
-    pendingWithdrawals: market.pendingWithdrawals
+    pendingWithdrawals: market.pendingWithdrawals,
+    users: Object.values(market.users)
   });
+});
+
+app.post('/api/admin/config', (req, res) => {
+  const { houseEdge, bigBetThreshold } = req.body;
+  if (houseEdge !== undefined) market.globalHouseEdge = parseFloat(houseEdge);
+  if (bigBetThreshold !== undefined) market.bigBetThreshold = parseFloat(bigBetThreshold);
+  res.json({ success: true, message: 'Configuration Updated' });
 });
 
 app.post('/api/admin/action', (req, res) => {
@@ -77,7 +94,7 @@ app.post('/api/admin/action', (req, res) => {
   }
 });
 
-// WebSockets Handling
+// WebSocket Real-time Execution
 io.on('connection', (socket) => {
   socket.on('place_trade', (data) => {
     const entryPrice = market.currentPrice;
@@ -87,6 +104,7 @@ io.on('connection', (socket) => {
     const trade = {
       id: 'TRD_' + Date.now(),
       userId: data.userId || 'USER_101',
+      accountType: data.accountType || 'DEMO', // 'DEMO' | 'REAL'
       type: data.type,
       entryPrice,
       amount: parseFloat(data.amount) || 10,
@@ -101,8 +119,7 @@ io.on('connection', (socket) => {
       if (data.type === 'CALL' && finalPrice > entryPrice) isWin = true;
       if (data.type === 'PUT' && finalPrice < entryPrice) isWin = true;
 
-      const payout = isWin ? (parseFloat(data.amount) * 1.85) : 0;
-      market.tradeHistory.push({ ...trade, closePrice: finalPrice, isWin, payout });
+      const payout = isWin ? (parseFloat(data.amount) * 1.87) : 0;
 
       socket.emit('trade_result', {
         tradeId: trade.id,
@@ -121,4 +138,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`PRO-TRADE Engine running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Quotex Engine running on port ${PORT}`));
