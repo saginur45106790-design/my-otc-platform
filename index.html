@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PRO-TRADE Binary Platform</title>
+  <title>COTEX | Global Trading Platform</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: #0b0e14; color: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Overlay Screen */
-    .fullscreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-    .card-box { background: #161c28; border: 1px solid #222b3d; padding: 25px; border-radius: 16px; width: 100%; max-width: 360px; text-align: center; }
+    .fullscreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+    .card-box { background: #161c28; border: 1px solid #222b3d; padding: 25px; border-radius: 16px; width: 100%; max-width: 380px; text-align: center; }
 
     .input-group { background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 10px; margin-bottom: 12px; text-align: left; }
     .input-group label { display: block; font-size: 11px; color: #848e9c; margin-bottom: 4px; }
@@ -19,26 +18,21 @@
 
     .btn-green { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #00e676; color: black; font-weight: bold; font-size: 15px; cursor: pointer; }
 
-    /* Header Bar */
     header { height: 50px; background: #161c28; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #222b3d; }
-    .logo { font-weight: bold; color: #00e676; font-size: 16px; }
-    
+    .logo { font-weight: bold; color: #00e676; font-size: 18px; }
     .account-switcher { background: #0b0e14; padding: 5px 12px; border-radius: 20px; color: #00e676; font-weight: 600; font-size: 13px; border: 1px solid #00e67644; cursor: pointer; }
 
     .page { flex: 1; display: none; flex-direction: column; overflow-y: auto; padding-bottom: 60px; }
     .page.active { display: flex; }
 
-    /* Quotex Pair Bar */
     .pair-bar { display: flex; gap: 8px; padding: 8px 12px; background: #161c28; overflow-x: auto; border-bottom: 1px solid #222b3d; }
     .pair-chip { padding: 6px 12px; background: #0b0e14; border-radius: 12px; font-size: 12px; white-space: nowrap; cursor: pointer; border: 1px solid #222b3d; display: flex; gap: 6px; align-items: center; }
     .pair-chip.active { background: #00e676; color: black; font-weight: bold; border-color: #00e676; }
     .profit-tag { font-size: 10px; padding: 2px 4px; background: rgba(0,230,118,0.2); border-radius: 4px; color: #00e676; }
 
-    /* Canvas Chart */
     #chart-wrapper { flex: 1; min-height: 280px; background: #131722; position: relative; width: 100%; }
     canvas { width: 100%; height: 100%; display: block; }
 
-    /* Trading Panel */
     .trade-panel { background: #161c28; padding: 12px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #222b3d; }
     .panel-row { display: flex; gap: 10px; }
     .custom-box { flex: 1; background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 8px 12px; text-align: left; }
@@ -50,7 +44,6 @@
     .btn-call { background: #00c853; color: white; }
     .btn-put { background: #ff1744; color: white; }
 
-    /* Fixed Bottom Nav */
     nav { height: 60px; background: #161c28; display: flex; position: fixed; bottom: 0; left: 0; width: 100%; border-top: 1px solid #222b3d; z-index: 1000; }
     .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #848e9c; cursor: pointer; }
     .nav-item.active { color: #00e676; font-weight: bold; }
@@ -62,15 +55,22 @@
 
   <div id="toast"></div>
 
-  <div id="splash-screen" class="fullscreen">
-    <div style="font-size: 48px; margin-bottom: 15px;">📈</div>
-    <h1 style="color: #00e676; font-size: 26px;">PRO-TRADE OTC</h1>
-    <p style="color: #848e9c; font-size: 13px; margin-top: 5px;">Quotex Grade Trading Platform</p>
+  <div id="landing-screen" class="fullscreen">
+    <div style="font-size: 50px; margin-bottom: 10px;">📊</div>
+    <h1 style="color: #00e676; font-size: 28px;">COTEX OTC</h1>
+    <p style="color: #848e9c; font-size: 14px; margin-top: 5px; margin-bottom: 25px;">Institutional Trading Engine</p>
+    <button class="btn-green" onclick="showAuth('signup')" style="margin-bottom: 10px;">Create Account</button>
+    <button class="btn-green" onclick="showAuth('login')" style="background: #222b3d; color: white;">Sign In</button>
   </div>
 
   <div id="auth-screen" class="fullscreen" style="display: none;">
     <div class="card-box">
-      <h2 style="color: #00e676; margin-bottom: 15px;" id="auth-title">Sign In</h2>
+      <h2 style="color: #00e676; margin-bottom: 15px;" id="auth-title">Create Account</h2>
+      
+      <div class="input-group" id="group-name">
+        <label>Full Name</label>
+        <input type="text" id="auth-name" placeholder="MD Sajib Hossain">
+      </div>
       <div class="input-group">
         <label>Email Address</label>
         <input type="email" id="auth-email" placeholder="user@example.com">
@@ -79,15 +79,20 @@
         <label>Password</label>
         <input type="password" id="auth-pass" placeholder="••••••••">
       </div>
-      <button class="btn-green" onclick="submitAuth()">Continue</button>
+      <div class="input-group" id="group-phone">
+        <label>Phone Number</label>
+        <input type="text" id="auth-phone" placeholder="01800000000">
+      </div>
+
+      <button class="btn-green" onclick="submitAuth()" id="btn-auth-action">Sign Up</button>
       <p style="font-size: 12px; margin-top: 15px; color: #848e9c; cursor: pointer;" onclick="toggleAuthMode()">
-        <span id="auth-toggle-btn">Don't have an account? Sign Up</span>
+        <span id="auth-toggle-btn">Already have an account? Sign In</span>
       </p>
     </div>
   </div>
 
   <header>
-    <div class="logo">PRO-TRADE OTC</div>
+    <div class="logo">COTEX</div>
     <div class="account-switcher" onclick="switchAccountType()">
       <span id="acc-type-label">Demo</span>: $<span id="user-balance">10000.00</span> 🔄
     </div>
@@ -95,10 +100,10 @@
 
   <div id="page-trade" class="page active">
     <div class="pair-bar">
-      <div class="pair-chip active">EUR/USD OTC <span class="profit-tag">+87%</span></div>
+      <div class="pair-chip active">EUR/USD OTC <span class="profit-tag">+88%</span></div>
       <div class="pair-chip">BTC/USDT OTC <span class="profit-tag">+92%</span></div>
       <div class="pair-chip">AAPL OTC <span class="profit-tag">+85%</span></div>
-      <div class="pair-chip">GOLD OTC <span class="profit-tag">+88%</span></div>
+      <div class="pair-chip">GOLD OTC <span class="profit-tag">+90%</span></div>
     </div>
 
     <div id="chart-wrapper">
@@ -117,21 +122,21 @@
         </div>
       </div>
       <div class="trade-btn-group">
-        <button class="trade-btn btn-call" onclick="placeTrade('CALL')">HIGHER ▲ (87%)</button>
-        <button class="trade-btn btn-put" onclick="placeTrade('PUT')">LOWER ▼ (87%)</button>
+        <button class="trade-btn btn-call" onclick="placeTrade('CALL')">HIGHER ▲ (88%)</button>
+        <button class="trade-btn btn-put" onclick="placeTrade('PUT')">LOWER ▼ (88%)</button>
       </div>
     </div>
   </div>
 
   <div id="page-wallet" class="page">
     <div class="card-box" style="margin: 20px auto; max-width: 90%;">
-      <h3 style="color: #00e676; margin-bottom: 15px;">Deposit ($5 Minimum)</h3>
+      <h3 style="color: #00e676; margin-bottom: 15px;">Deposit Funds ($5 Min)</h3>
       <div class="input-group">
-        <label>Payment Method</label>
+        <label>Payment Gateway</label>
         <select id="dep-method" style="color:white;">
-          <option value="bKash (P2P)">bKash (P2P / Merchant)</option>
+          <option value="bKash (P2P)">bKash Merchant / Personal</option>
           <option value="Nagad (P2P)">Nagad Personal</option>
-          <option value="USDT TRC20">USDT (TRC20 / BEP20)</option>
+          <option value="USDT TRC20">USDT (TRC20)</option>
           <option value="Binance Pay">Binance Pay</option>
         </select>
       </div>
@@ -142,69 +147,79 @@
       </div>
       <div class="input-group">
         <label>Transaction TRX ID</label>
-        <input type="text" id="dep-trx" placeholder="Enter TRX ID">
+        <input type="text" id="dep-trx" placeholder="Enter Transaction ID">
       </div>
       <button class="btn-green" onclick="submitDeposit()">Submit Deposit Request</button>
     </div>
   </div>
 
-  <div id="page-profile" class="page">
+  <div id="page-signals" class="page">
     <div class="card-box" style="margin: 20px auto; max-width: 90%;">
-      <h3 style="color: #00e676; margin-bottom: 15px;">Account Verification (KYC)</h3>
-      <div class="input-group">
-        <label>Full Legal Name</label>
-        <input type="text" placeholder="MD Sajib Hossain">
+      <h3 style="color: #00e676; margin-bottom: 15px;">AI Signals & Copy Trading</h3>
+      <div style="background: #0b0e14; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #222b3d;">
+        <div style="font-size: 12px; color: #848e9c;">EUR/USD Signal:</div>
+        <div style="font-size: 15px; font-weight: bold; color: #00e676;">CALL (BUY) - 1 Minute Expiry</div>
       </div>
-      <div class="input-group">
-        <label>NID / Passport Number</label>
-        <input type="text" placeholder="85857047">
+      <div style="background: #0b0e14; padding: 12px; border-radius: 8px; border: 1px solid #222b3d;">
+        <div style="font-size: 12px; color: #848e9c;">Top Leaderboard Trader:</div>
+        <div style="font-size: 14px; font-weight: bold; margin-top: 2px;">Sajib Trader (Win Rate 94%)</div>
+        <button class="btn-green" style="margin-top: 10px; padding: 8px;" onclick="showToast('Copying Enabled!')">Copy Trades</button>
       </div>
-      <button class="btn-green" onclick="showToast('KYC Documents Submitted!')">Submit Documents</button>
     </div>
   </div>
 
   <nav>
     <div class="nav-item active" onclick="showPage('trade', this)">📊 Trade</div>
     <div class="nav-item" onclick="showPage('wallet', this)">💳 Wallet</div>
-    <div class="nav-item" onclick="showPage('profile', this)">👤 Profile</div>
+    <div class="nav-item" onclick="showPage('signals', this)">🤖 Signals</div>
   </nav>
 
   <script>
     const socket = io();
     let currentUserId = "USER_101";
-    let currentUserEmail = "";
     let isRealAccount = false;
     let demoBalance = 10000.00;
     let realBalance = 0.00;
-    let isRegisterMode = false;
+    let isSignUpMode = true;
     const USD_TO_BDT = 122;
 
     let candleData = [];
     let canvas, ctx;
 
-    setTimeout(() => {
-      document.getElementById('splash-screen').style.display = 'none';
+    function showAuth(type) {
+      document.getElementById('landing-screen').style.display = 'none';
       document.getElementById('auth-screen').style.display = 'flex';
-    }, 1500);
+      isSignUpMode = (type === 'signup');
+      updateAuthUI();
+    }
 
     function toggleAuthMode() {
-      isRegisterMode = !isRegisterMode;
-      document.getElementById('auth-title').innerText = isRegisterMode ? "Sign Up" : "Sign In";
-      document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up";
+      isSignUpMode = !isSignUpMode;
+      updateAuthUI();
+    }
+
+    function updateAuthUI() {
+      document.getElementById('auth-title').innerText = isSignUpMode ? "Create Account" : "Sign In";
+      document.getElementById('btn-auth-action').innerText = isSignUpMode ? "Sign Up" : "Sign In";
+      document.getElementById('group-name').style.display = isSignUpMode ? "block" : "none";
+      document.getElementById('group-phone').style.display = isSignUpMode ? "block" : "none";
+      document.getElementById('auth-toggle-btn').innerText = isSignUpMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up";
     }
 
     function submitAuth() {
       const email = document.getElementById('auth-email').value;
       const pass = document.getElementById('auth-pass').value;
+      const fullName = document.getElementById('auth-name').value;
+      const phone = document.getElementById('auth-phone').value;
+
       if (!email || !pass) { showToast("Enter Email and Password"); return; }
 
-      const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
+      const endpoint = isSignUpMode ? '/api/auth/register' : '/api/auth/login';
       fetch(endpoint, {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ email, password: pass })
+        body: JSON.stringify({ fullName, email, password: pass, phone })
       }).then(r => r.json()).then(data => {
         if (data.success) {
-          currentUserEmail = email;
           currentUserId = data.user.id;
           demoBalance = data.user.demoBalance;
           realBalance = data.user.realBalance;
@@ -350,7 +365,7 @@
       fetch('/api/deposit', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ userId: currentUserId, amount: amt, method, trxId })
-      }).then(() => showToast("Deposit Request Submitted for Admin Approval"));
+      }).then(() => showToast("Deposit Submitted for Approval"));
     }
 
     function showPage(pageId, el) {
@@ -372,4 +387,4 @@
     }
   </script>
 </body>
-        </html>
+  </html>
