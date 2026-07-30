@@ -1,7 +1,7 @@
 {
-  "name": "cotex-enterprise-platform",
-  "version": "5.0.0",
-  "description": "Institutional Grade Mobile Responsive Binary Options Platform",
+  "name": "cotex-enterprise-full-suite",
+  "version": "6.0.0",
+  "description": "Complete Cotex Binary Trading Platform with Advanced Analytics and Admin Manipulation Suite",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
