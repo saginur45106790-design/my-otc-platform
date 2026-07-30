@@ -3,229 +3,293 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>COTEX | Global Trading Platform</title>
+  <title>COTEX | Binary Trading Platform</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: #0b0e14; color: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    body { background: #0b0e14; color: #ffffff; height: 100vh; display: flex; overflow: hidden; }
 
-    .fullscreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-    .card-box { background: #161c28; border: 1px solid #222b3d; padding: 25px; border-radius: 16px; width: 100%; max-width: 380px; text-align: center; }
+    /* Left Sidebar Navigation (Matching Cotex Image 13319.png) */
+    aside { width: 220px; background: #161c28; border-right: 1px solid #222b3d; display: flex; flex-direction: column; flex-shrink: 0; }
+    .brand-title { padding: 18px; font-size: 22px; font-weight: bold; color: #00e676; border-bottom: 1px solid #222b3d; display: flex; align-items: center; gap: 8px; }
+    
+    .sidebar-menu { display: flex; flex-direction: column; gap: 4px; padding: 10px; overflow-y: auto; flex: 1; }
+    .menu-item { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; font-size: 13px; color: #848e9c; cursor: pointer; transition: 0.2s; }
+    .menu-item:hover, .menu-item.active { background: #222b3d; color: #00e676; font-weight: bold; }
 
-    .input-group { background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 10px; margin-bottom: 12px; text-align: left; }
-    .input-group label { display: block; font-size: 11px; color: #848e9c; margin-bottom: 4px; }
-    .input-group input, .input-group select { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; }
+    /* Main Content Workspace */
+    main { flex: 1; display: flex; flex-direction: column; background: #0b0e14; overflow: hidden; }
 
-    .btn-green { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #00e676; color: black; font-weight: bold; font-size: 15px; cursor: pointer; }
+    /* Top Bar */
+    header { height: 55px; background: #161c28; border-bottom: 1px solid #222b3d; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+    .acc-switch { background: #0b0e14; border: 1px solid #00e67644; padding: 6px 14px; border-radius: 20px; color: #00e676; font-size: 13px; font-weight: 600; cursor: pointer; }
 
-    header { height: 50px; background: #161c28; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #222b3d; }
-    .logo { font-weight: bold; color: #00e676; font-size: 18px; }
-    .account-switcher { background: #0b0e14; padding: 5px 12px; border-radius: 20px; color: #00e676; font-weight: 600; font-size: 13px; border: 1px solid #00e67644; cursor: pointer; }
+    /* View Sections */
+    .view-section { flex: 1; display: none; flex-direction: column; overflow-y: auto; padding: 15px; }
+    .view-section.active { display: flex; }
 
-    .page { flex: 1; display: none; flex-direction: column; overflow-y: auto; padding-bottom: 60px; }
-    .page.active { display: flex; }
-
-    .pair-bar { display: flex; gap: 8px; padding: 8px 12px; background: #161c28; overflow-x: auto; border-bottom: 1px solid #222b3d; }
-    .pair-chip { padding: 6px 12px; background: #0b0e14; border-radius: 12px; font-size: 12px; white-space: nowrap; cursor: pointer; border: 1px solid #222b3d; display: flex; gap: 6px; align-items: center; }
+    /* Cotex Trading Layout */
+    .pair-scroll { display: flex; gap: 8px; padding-bottom: 10px; overflow-x: auto; }
+    .pair-chip { padding: 6px 12px; background: #161c28; border-radius: 10px; font-size: 12px; border: 1px solid #222b3d; cursor: pointer; display: flex; gap: 6px; align-items: center; white-space: nowrap; }
     .pair-chip.active { background: #00e676; color: black; font-weight: bold; border-color: #00e676; }
-    .profit-tag { font-size: 10px; padding: 2px 4px; background: rgba(0,230,118,0.2); border-radius: 4px; color: #00e676; }
+    .profit-badge { font-size: 10px; background: rgba(0,230,118,0.2); padding: 2px 4px; border-radius: 4px; color: #00e676; }
 
-    #chart-wrapper { flex: 1; min-height: 280px; background: #131722; position: relative; width: 100%; }
+    .trading-workspace { display: grid; grid-template-columns: 1fr 280px; flex: 1; min-height: 300px; gap: 10px; }
+    #chart-wrapper { background: #131722; border-radius: 12px; position: relative; width: 100%; height: 100%; border: 1px solid #222b3d; }
     canvas { width: 100%; height: 100%; display: block; }
 
-    .trade-panel { background: #161c28; padding: 12px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #222b3d; }
-    .panel-row { display: flex; gap: 10px; }
-    .custom-box { flex: 1; background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 8px 12px; text-align: left; }
-    .custom-box label { display: block; font-size: 10px; color: #848e9c; }
-    .custom-box div { font-size: 14px; font-weight: 600; margin-top: 2px; }
+    .control-panel { background: #161c28; border-radius: 12px; border: 1px solid #222b3d; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+    .input-box { background: #0b0e14; border: 1px solid #222b3d; border-radius: 8px; padding: 10px; }
+    .input-box label { display: block; font-size: 11px; color: #848e9c; margin-bottom: 4px; }
+    .input-box input, .input-box select { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; }
 
-    .trade-btn-group { display: flex; gap: 10px; }
-    .trade-btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+    .btn-action { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; }
     .btn-call { background: #00c853; color: white; }
     .btn-put { background: #ff1744; color: white; }
 
-    nav { height: 60px; background: #161c28; display: flex; position: fixed; bottom: 0; left: 0; width: 100%; border-top: 1px solid #222b3d; z-index: 1000; }
-    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #848e9c; cursor: pointer; }
-    .nav-item.active { color: #00e676; font-weight: bold; }
+    /* Modals & Fullscreen Forms */
+    .fullscreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .card-box { background: #161c28; border: 1px solid #222b3d; padding: 25px; border-radius: 16px; width: 100%; max-width: 380px; text-align: center; }
 
-    #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #161c28; color: #00e676; padding: 10px 20px; border-radius: 20px; border: 1px solid #00e676; font-size: 12px; display: none; z-index: 3000; font-weight: bold; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: #161c28; border: 1px solid #222b3d; padding: 15px; border-radius: 10px; }
+    .stat-val { font-size: 20px; font-weight: bold; color: #00e676; margin-top: 5px; }
+
+    #toast { position: fixed; top: 65px; right: 20px; background: #161c28; color: #00e676; padding: 12px 24px; border-radius: 10px; border: 1px solid #00e676; font-size: 13px; font-weight: bold; display: none; z-index: 4000; }
+
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      aside { width: 100%; height: 60px; border-right: none; border-top: 1px solid #222b3d; order: 2; }
+      .brand-title { display: none; }
+      .sidebar-menu { flex-direction: row; justify-content: space-around; padding: 0; }
+      .menu-item { flex-direction: column; font-size: 10px; padding: 8px 4px; gap: 2px; }
+      main { order: 1; flex: 1; }
+      .trading-workspace { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    }
   </style>
 </head>
 <body>
 
   <div id="toast"></div>
 
-  <div id="landing-screen" class="fullscreen">
-    <div style="font-size: 50px; margin-bottom: 10px;">📊</div>
-    <h1 style="color: #00e676; font-size: 28px;">COTEX OTC</h1>
-    <p style="color: #848e9c; font-size: 14px; margin-top: 5px; margin-bottom: 25px;">Institutional Trading Engine</p>
-    <button class="btn-green" onclick="showAuth('signup')" style="margin-bottom: 10px;">Create Account</button>
-    <button class="btn-green" onclick="showAuth('login')" style="background: #222b3d; color: white;">Sign In</button>
-  </div>
-
-  <div id="auth-screen" class="fullscreen" style="display: none;">
+  <div id="auth-screen" class="fullscreen">
     <div class="card-box">
-      <h2 style="color: #00e676; margin-bottom: 15px;" id="auth-title">Create Account</h2>
-      
-      <div class="input-group" id="group-name">
+      <h2 style="color: #00e676; margin-bottom: 15px;" id="auth-title">Sign In to COTEX</h2>
+      <div class="input-box" id="box-name" style="display: none;">
         <label>Full Name</label>
         <input type="text" id="auth-name" placeholder="MD Sajib Hossain">
       </div>
-      <div class="input-group">
+      <div class="input-box">
         <label>Email Address</label>
         <input type="email" id="auth-email" placeholder="user@example.com">
       </div>
-      <div class="input-group">
+      <div class="input-box">
         <label>Password</label>
         <input type="password" id="auth-pass" placeholder="••••••••">
       </div>
-      <div class="input-group" id="group-phone">
-        <label>Phone Number</label>
-        <input type="text" id="auth-phone" placeholder="01800000000">
-      </div>
-
-      <button class="btn-green" onclick="submitAuth()" id="btn-auth-action">Sign Up</button>
+      <button class="btn-action btn-call" onclick="submitAuth()" id="btn-auth">Sign In</button>
       <p style="font-size: 12px; margin-top: 15px; color: #848e9c; cursor: pointer;" onclick="toggleAuthMode()">
-        <span id="auth-toggle-btn">Already have an account? Sign In</span>
+        <span id="auth-toggle">Don't have an account? Sign Up</span>
       </p>
     </div>
   </div>
 
-  <header>
-    <div class="logo">COTEX</div>
-    <div class="account-switcher" onclick="switchAccountType()">
-      <span id="acc-type-label">Demo</span>: $<span id="user-balance">10000.00</span> 🔄
+  <aside>
+    <div class="brand-title">📈 COTEX</div>
+    <div class="sidebar-menu">
+      <div class="menu-item" onclick="showView('dashboard', this)">📊 Dashboard</div>
+      <div class="menu-item active" onclick="showView('trading', this)">📈 Trading</div>
+      <div class="menu-item" onclick="showView('market', this)">🌐 Market</div>
+      <div class="menu-item" onclick="showView('wallet', this)">👛 Wallet</div>
+      <div class="menu-item" onclick="showView('deposit', this)">📥 Deposit</div>
+      <div class="menu-item" onclick="showView('withdraw', this)">📤 Withdraw</div>
+      <div class="menu-item" onclick="showView('history', this)">📜 History</div>
+      <div class="menu-item" onclick="showView('referral', this)">👥 Referral</div>
+      <div class="menu-item" onclick="showView('profile', this)">👤 Profile / KYC</div>
+      <div class="menu-item" onclick="showView('vip', this)">🏆 VIP & Tournaments</div>
+      <div class="menu-item" onclick="showView('signals', this)">🤖 AI Signals</div>
+      <div class="menu-item" onclick="showView('support', this)">🎧 Support</div>
     </div>
-  </header>
+  </aside>
 
-  <div id="page-trade" class="page active">
-    <div class="pair-bar">
-      <div class="pair-chip active">EUR/USD OTC <span class="profit-tag">+88%</span></div>
-      <div class="pair-chip">BTC/USDT OTC <span class="profit-tag">+92%</span></div>
-      <div class="pair-chip">AAPL OTC <span class="profit-tag">+85%</span></div>
-      <div class="pair-chip">GOLD OTC <span class="profit-tag">+90%</span></div>
+  <main>
+    <header>
+      <div style="font-size: 14px; font-weight: 600;" id="page-heading">Trading Workspace</div>
+      <div class="acc-switch" onclick="switchAccountType()">
+        <span id="acc-type">Demo Account</span>: $<span id="user-balance">10000.00</span> 🔄
+      </div>
+    </header>
+
+    <div id="view-dashboard" class="view-section">
+      <div class="grid-4">
+        <div class="stat-card"><div>Main Wallet</div><div class="stat-val" id="dash-main-bal">$0.00</div></div>
+        <div class="stat-card"><div>Trading Wallet</div><div class="stat-val" id="dash-trade-bal">$0.00</div></div>
+        <div class="stat-card"><div>Bonus Wallet</div><div class="stat-val" style="color:#00e676;">$50.00</div></div>
+        <div class="stat-card"><div>Win Rate</div><div class="stat-val">88.5%</div></div>
+      </div>
     </div>
 
-    <div id="chart-wrapper">
-      <canvas id="tradingCanvas"></canvas>
-    </div>
+    <div id="view-trading" class="view-section active">
+      <div class="pair-scroll">
+        <div class="pair-chip active">EUR/USD OTC <span class="profit-badge">+88%</span></div>
+        <div class="pair-chip">BTC/USDT OTC <span class="profit-badge">+92%</span></div>
+        <div class="pair-chip">AAPL OTC <span class="profit-badge">+85%</span></div>
+        <div class="pair-chip">GOLD OTC <span class="profit-badge">+90%</span></div>
+      </div>
 
-    <div class="trade-panel">
-      <div class="panel-row">
-        <div class="custom-box">
-          <label>Timeframe</label>
-          <div>1 Min (60s)</div>
+      <div class="trading-workspace">
+        <div id="chart-wrapper"><canvas id="tradingCanvas"></canvas></div>
+        <div class="control-panel">
+          <div class="input-box">
+            <label>Timeframe</label>
+            <select id="trade-time">
+              <option value="60">1 Min (60s)</option>
+              <option value="120">2 Min (120s)</option>
+              <option value="300">5 Min (300s)</option>
+            </select>
+          </div>
+          <div class="input-box">
+            <label>Investment Amount ($)</label>
+            <input type="number" id="trade-amount" value="10">
+          </div>
+          <button class="btn-action btn-call" onclick="placeTrade('CALL')">HIGHER ▲ (88%)</button>
+          <button class="btn-action btn-put" onclick="placeTrade('PUT')">LOWER ▼ (88%)</button>
         </div>
-        <div class="custom-box">
-          <label>Investment Amount</label>
-          <div style="color: #00e676;">$<input type="number" id="trade-amount" value="10" style="width: 60px; background: transparent; border: none; color: #00e676; font-size: 14px; font-weight: bold; outline: none;"></div>
+      </div>
+    </div>
+
+    <div id="view-market" class="view-section">
+      <div class="stat-card">
+        <h3>Live Market Overview</h3>
+        <p style="color:#848e9c; font-size:13px; margin-top:5px;">Forex, Crypto, Commodities & OTC Asset Feeds synced with WebSockets.</p>
+      </div>
+    </div>
+
+    <div id="view-wallet" class="view-section">
+      <div class="grid-4">
+        <div class="stat-card"><div>Main Wallet</div><div class="stat-val">$0.00</div></div>
+        <div class="stat-card"><div>Trading Wallet</div><div class="stat-val">$0.00</div></div>
+        <div class="stat-card"><div>Bonus Wallet</div><div class="stat-val">$50.00</div></div>
+      </div>
+    </div>
+
+    <div id="view-deposit" class="view-section">
+      <div class="card-box" style="margin: 0 auto; max-width: 450px;">
+        <h3 style="color:#00e676; margin-bottom:15px;">Deposit Funds ($5 Minimum)</h3>
+        <div class="input-box">
+          <label>Select Gateway</label>
+          <select id="dep-method">
+            <option value="bKash (P2P)">bKash Merchant / Personal</option>
+            <option value="Nagad (P2P)">Nagad Personal</option>
+            <option value="USDT TRC20">USDT (TRC20)</option>
+            <option value="Binance Pay">Binance Pay</option>
+          </select>
         </div>
-      </div>
-      <div class="trade-btn-group">
-        <button class="trade-btn btn-call" onclick="placeTrade('CALL')">HIGHER ▲ (88%)</button>
-        <button class="trade-btn btn-put" onclick="placeTrade('PUT')">LOWER ▼ (88%)</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="page-wallet" class="page">
-    <div class="card-box" style="margin: 20px auto; max-width: 90%;">
-      <h3 style="color: #00e676; margin-bottom: 15px;">Deposit Funds ($5 Min)</h3>
-      <div class="input-group">
-        <label>Payment Gateway</label>
-        <select id="dep-method" style="color:white;">
-          <option value="bKash (P2P)">bKash Merchant / Personal</option>
-          <option value="Nagad (P2P)">Nagad Personal</option>
-          <option value="USDT TRC20">USDT (TRC20)</option>
-          <option value="Binance Pay">Binance Pay</option>
-        </select>
-      </div>
-      <div class="input-group">
-        <label>USD Amount ($5 Minimum)</label>
-        <input type="number" id="dep-amount" placeholder="5" oninput="calcBDT()">
-        <div style="font-size: 12px; color: #00e676; margin-top: 5px;" id="dep-bdt">≈ 0.00 BDT (Rate: 1 USD = 122 BDT)</div>
-      </div>
-      <div class="input-group">
-        <label>Transaction TRX ID</label>
-        <input type="text" id="dep-trx" placeholder="Enter Transaction ID">
-      </div>
-      <button class="btn-green" onclick="submitDeposit()">Submit Deposit Request</button>
-    </div>
-  </div>
-
-  <div id="page-signals" class="page">
-    <div class="card-box" style="margin: 20px auto; max-width: 90%;">
-      <h3 style="color: #00e676; margin-bottom: 15px;">AI Signals & Copy Trading</h3>
-      <div style="background: #0b0e14; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #222b3d;">
-        <div style="font-size: 12px; color: #848e9c;">EUR/USD Signal:</div>
-        <div style="font-size: 15px; font-weight: bold; color: #00e676;">CALL (BUY) - 1 Minute Expiry</div>
-      </div>
-      <div style="background: #0b0e14; padding: 12px; border-radius: 8px; border: 1px solid #222b3d;">
-        <div style="font-size: 12px; color: #848e9c;">Top Leaderboard Trader:</div>
-        <div style="font-size: 14px; font-weight: bold; margin-top: 2px;">Sajib Trader (Win Rate 94%)</div>
-        <button class="btn-green" style="margin-top: 10px; padding: 8px;" onclick="showToast('Copying Enabled!')">Copy Trades</button>
+        <div class="input-box">
+          <label>USD Amount ($5 Min)</label>
+          <input type="number" id="dep-amount" placeholder="5" oninput="calcBDT()">
+          <div style="font-size:12px; color:#00e676; margin-top:4px;" id="dep-bdt">≈ 0.00 BDT (Rate: 1 USD = 122 BDT)</div>
+        </div>
+        <div class="input-box">
+          <label>Transaction TRX ID</label>
+          <input type="text" id="dep-trx" placeholder="Enter TRX ID">
+        </div>
+        <button class="btn-action btn-call" onclick="submitDeposit()">Submit Deposit Request</button>
       </div>
     </div>
-  </div>
 
-  <nav>
-    <div class="nav-item active" onclick="showPage('trade', this)">📊 Trade</div>
-    <div class="nav-item" onclick="showPage('wallet', this)">💳 Wallet</div>
-    <div class="nav-item" onclick="showPage('signals', this)">🤖 Signals</div>
-  </nav>
+    <div id="view-withdraw" class="view-section">
+      <div class="card-box" style="margin: 0 auto; max-width: 450px;">
+        <h3 style="color:#00e676; margin-bottom:15px;">Withdrawal ($10 Minimum)</h3>
+        <div class="input-box">
+          <label>Method</label>
+          <select id="with-method">
+            <option value="bKash">bKash Personal</option>
+            <option value="Nagad">Nagad Personal</option>
+          </select>
+        </div>
+        <div class="input-box">
+          <label>Amount ($10 Min)</label>
+          <input type="number" id="with-amount" placeholder="10">
+        </div>
+        <div class="input-box">
+          <label>Account Number</label>
+          <input type="text" id="with-acc" placeholder="01800000000">
+        </div>
+        <button class="btn-action btn-put" onclick="submitWithdraw()">Request Withdrawal</button>
+      </div>
+    </div>
+
+    <div id="view-history" class="view-section">
+      <div class="stat-card"><h3>Transactions & Trade History</h3></div>
+    </div>
+
+    <div id="view-referral" class="view-section">
+      <div class="stat-card">
+        <h3>Referral Program</h3>
+        <p style="color:#848e9c; font-size:13px; margin-top:5px;">Your Link: https://cotex.app/ref?id=USER_101</p>
+      </div>
+    </div>
+
+    <div id="view-profile" class="view-section">
+      <div class="card-box" style="margin: 0 auto; max-width: 450px;">
+        <h3 style="color:#00e676; margin-bottom:15px;">KYC Verification</h3>
+        <div class="input-box"><label>Full Name</label><input type="text" placeholder="MD Sajib Hossain"></div>
+        <div class="input-box"><label>NID / Passport Number</label><input type="text" placeholder="85857047"></div>
+        <button class="btn-action btn-call" onclick="showToast('KYC Submitted for Approval!')">Submit KYC</button>
+      </div>
+    </div>
+
+    <div id="view-vip" class="view-section">
+      <div class="stat-card"><h3>VIP Level: Bronze Badge</h3></div>
+    </div>
+
+    <div id="view-signals" class="view-section">
+      <div class="stat-card"><h3>AI Signal: EUR/USD OTC - CALL (BUY)</h3></div>
+    </div>
+
+    <div id="view-support" class="view-section">
+      <div class="stat-card"><h3>Support Center & Live Chat Ticket</h3></div>
+    </div>
+  </main>
 
   <script>
     const socket = io();
     let currentUserId = "USER_101";
     let isRealAccount = false;
     let demoBalance = 10000.00;
-    let realBalance = 0.00;
-    let isSignUpMode = true;
+    let mainWallet = 0.00;
+    let isSignUp = false;
     const USD_TO_BDT = 122;
 
     let candleData = [];
     let canvas, ctx;
 
-    function showAuth(type) {
-      document.getElementById('landing-screen').style.display = 'none';
-      document.getElementById('auth-screen').style.display = 'flex';
-      isSignUpMode = (type === 'signup');
-      updateAuthUI();
-    }
-
     function toggleAuthMode() {
-      isSignUpMode = !isSignUpMode;
-      updateAuthUI();
-    }
-
-    function updateAuthUI() {
-      document.getElementById('auth-title').innerText = isSignUpMode ? "Create Account" : "Sign In";
-      document.getElementById('btn-auth-action').innerText = isSignUpMode ? "Sign Up" : "Sign In";
-      document.getElementById('group-name').style.display = isSignUpMode ? "block" : "none";
-      document.getElementById('group-phone').style.display = isSignUpMode ? "block" : "none";
-      document.getElementById('auth-toggle-btn').innerText = isSignUpMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up";
+      isSignUp = !isSignUp;
+      document.getElementById('auth-title').innerText = isSignUp ? "Sign Up for COTEX" : "Sign In to COTEX";
+      document.getElementById('btn-auth').innerText = isSignUp ? "Sign Up" : "Sign In";
+      document.getElementById('box-name').style.display = isSignUp ? "block" : "none";
+      document.getElementById('auth-toggle').innerText = isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up";
     }
 
     function submitAuth() {
       const email = document.getElementById('auth-email').value;
       const pass = document.getElementById('auth-pass').value;
-      const fullName = document.getElementById('auth-name').value;
-      const phone = document.getElementById('auth-phone').value;
-
       if (!email || !pass) { showToast("Enter Email and Password"); return; }
 
-      const endpoint = isSignUpMode ? '/api/auth/register' : '/api/auth/login';
+      const endpoint = isSignUp ? '/api/auth/register' : '/api/auth/login';
       fetch(endpoint, {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ fullName, email, password: pass, phone })
+        body: JSON.stringify({ email, password: pass })
       }).then(r => r.json()).then(data => {
         if (data.success) {
           currentUserId = data.user.id;
           demoBalance = data.user.demoBalance;
-          realBalance = data.user.realBalance;
+          mainWallet = data.user.mainWallet;
           updateBalanceUI();
           document.getElementById('auth-screen').style.display = 'none';
-          showToast("Welcome!");
+          showToast("Welcome to COTEX!");
           initCanvasChart();
         } else {
           showToast(data.message);
@@ -240,9 +304,10 @@
     }
 
     function updateBalanceUI() {
-      document.getElementById('acc-type-label').innerText = isRealAccount ? "Real" : "Demo";
-      const bal = isRealAccount ? realBalance : demoBalance;
+      document.getElementById('acc-type').innerText = isRealAccount ? "Real Account" : "Demo Account";
+      const bal = isRealAccount ? mainWallet : demoBalance;
       document.getElementById('user-balance').innerText = bal.toFixed(2);
+      document.getElementById('dash-main-bal').innerText = '$' + mainWallet.toFixed(2);
     }
 
     function initCanvasChart() {
@@ -275,9 +340,11 @@
 
     function resizeCanvas() {
       const wrapper = document.getElementById('chart-wrapper');
-      canvas.width = wrapper.clientWidth;
-      canvas.height = wrapper.clientHeight;
-      drawChart();
+      if (wrapper && canvas) {
+        canvas.width = wrapper.clientWidth;
+        canvas.height = wrapper.clientHeight;
+        drawChart();
+      }
     }
 
     function drawChart() {
@@ -318,11 +385,11 @@
 
     function placeTrade(type) {
       const amount = parseFloat(document.getElementById('trade-amount').value);
-      const activeBal = isRealAccount ? realBalance : demoBalance;
+      const activeBal = isRealAccount ? mainWallet : demoBalance;
 
       if (amount > activeBal) { showToast("Insufficient Balance!"); return; }
 
-      if (isRealAccount) realBalance -= amount;
+      if (isRealAccount) mainWallet -= amount;
       else demoBalance -= amount;
 
       updateBalanceUI();
@@ -340,7 +407,7 @@
 
     socket.on('trade_result', (res) => {
       if (res.isWin) {
-        if (isRealAccount) realBalance += res.payout;
+        if (isRealAccount) mainWallet += res.payout;
         else demoBalance += res.payout;
         showToast(`WIN! Payout: $${res.payout.toFixed(2)}`);
       } else {
@@ -368,13 +435,26 @@
       }).then(() => showToast("Deposit Submitted for Approval"));
     }
 
-    function showPage(pageId, el) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.getElementById('page-' + pageId).classList.add('active');
-      el.classList.add('active');
+    function submitWithdraw() {
+      const amt = parseFloat(document.getElementById('with-amount').value);
+      const accountNo = document.getElementById('with-acc').value;
+      if (isNaN(amt) || amt < 10) { showToast("Minimum Withdrawal is $10"); return; }
+      if (!accountNo) { showToast("Enter Account Number"); return; }
 
-      if (pageId === 'trade') {
+      fetch('/api/withdraw', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId: currentUserId, amount: amt, method: document.getElementById('with-method').value, accountNo })
+      }).then(() => showToast("Withdrawal Request Submitted"));
+    }
+
+    function showView(viewId, el) {
+      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+      document.getElementById('view-' + viewId).classList.add('active');
+      if (el) el.classList.add('active');
+      document.getElementById('page-heading').innerText = viewId.toUpperCase() + ' WORKSPACE';
+
+      if (viewId === 'trading') {
         setTimeout(resizeCanvas, 100);
       }
     }
@@ -387,4 +467,4 @@
     }
   </script>
 </body>
-  </html>
+            </html>
