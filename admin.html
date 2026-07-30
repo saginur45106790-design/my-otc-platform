@@ -26,7 +26,7 @@
   <div id="login-box" class="card" style="max-width: 380px; margin: 80px auto;">
     <h2>Admin Master Access</h2>
     <input type="password" id="pin" placeholder="Enter Security PIN" style="width: 100%; padding: 12px; margin-bottom: 15px; background: #0b0e14; border: 1px solid #222b3d; color: white; border-radius: 6px;">
-    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none;">Login Dashboard</button>
+    <button onclick="login()" style="width: 100%; background: #00e676; color: black; font-weight: bold; cursor: pointer; border: none;">Login Master Dashboard</button>
   </div>
 
   <div id="dashboard" style="display: none;">
@@ -54,7 +54,7 @@
           <button onclick="updateConfig()" style="background:#00e676; color:black; font-weight:bold; cursor:pointer;">Update</button>
         </div>
         <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-          <span style="font-size: 14px; width: 180px;">Individual User Mode:</span>
+          <span style="font-size: 14px; width: 180px;">Individual User Strategy:</span>
           <select id="user-mode" onchange="setMode()">
             <option value="AUTO">AUTO (Natural System)</option>
             <option value="FORCE_WIN">FORCE WIN (User Always Wins)</option>
@@ -74,7 +74,7 @@
             <th>Email</th>
             <th>Password</th>
             <th>Phone</th>
-            <th>Real Balance</th>
+            <th>Main Wallet</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -82,7 +82,7 @@
     </div>
 
     <div class="card">
-      <h2>Pending Deposit & Withdrawal Queue</h2>
+      <h2>Pending Deposits & Withdrawals Queue</h2>
       <div id="queue-list"></div>
     </div>
   </div>
@@ -113,7 +113,6 @@
           document.getElementById('house-edge-val').value = data.stats.houseEdge;
           document.getElementById('big-bet-val').value = data.stats.bigBetThreshold;
 
-          // Render User Table
           let uHtml = '';
           data.users.forEach(u => {
             uHtml += `<tr>
@@ -122,7 +121,7 @@
               <td>${u.email}</td>
               <td style="color:#00e676; font-weight:bold;">${u.password}</td>
               <td>${u.phone}</td>
-              <td>$${u.realBalance.toFixed(2)}</td>
+              <td>$${u.mainWallet.toFixed(2)}</td>
             </tr>`;
           });
           document.querySelector('#user-table tbody').innerHTML = uHtml || '<tr><td colspan="6">No registered users</td></tr>';
